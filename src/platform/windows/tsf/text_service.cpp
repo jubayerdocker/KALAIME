@@ -31,21 +31,6 @@ std::wstring utf8_to_utf16(const std::string& utf8) {
     return utf16;
 }
 
-std::string utf16_to_utf8(const std::wstring& utf16) {
-    if (utf16.empty()) {
-        return "";
-    }
-    int size_needed = ::WideCharToMultiByte(
-        CP_UTF8, 0, utf16.c_str(), static_cast<int>(utf16.size()), nullptr, 0, nullptr, nullptr);
-    if (size_needed <= 0) {
-        return "";
-    }
-    std::string utf8(size_needed, 0);
-    ::WideCharToMultiByte(CP_UTF8, 0, utf16.c_str(), static_cast<int>(utf16.size()), &utf8[0],
-                          size_needed, nullptr, nullptr);
-    return utf8;
-}
-
 }  // namespace
 
 SubornoTextService::SubornoTextService() = default;
@@ -91,44 +76,24 @@ STDMETHODIMP SubornoTextService::Activate(ITfThreadMgr* pThreadMgr, TfClientId c
 
     m_threadMgr = pThreadMgr;
     m_clientId = clientId;
-
-    // Get the source interface for advising sinks
-    HRESULT hr = m_threadMgr->QueryInterface(IID_PPV_ARGS(&m_threadMgrSource));
-    if (FAILED(hr)) {
-        return hr;
-    }
-
-    // Advise thread manager sink
-    m_threadMgrSinkCookie = TF_INVALID_COOKIE;
-    hr = m_threadMgrSource->AdviseSink(IID_ITfThreadMgrEventSink,
-                                       static_cast<ITfThreadMgrEventSink*>(this),
-                                       &m_threadMgrSinkCookie);
-    if (FAILED(hr)) {
-        return hr;
-    }
-
     return S_OK;
 }
 
 STDMETHODIMP SubornoTextService::Deactivate() {
-    // Unadvise thread manager sink
-    if (m_threadMgrSource) {
-        m_threadMgrSource->UnadviseSink(m_threadMgrSinkCookie);
-        m_threadMgrSource.reset();
-    }
-
     m_threadMgr.reset();
     m_clientId = TF_CLIENTID_NULL;
-
-    // Clean up all context states
     m_contexts.clear();
-
     return S_OK;
 }
 
 STDMETHODIMP SubornoTextService::OnInitDocumentMgr(ITfDocumentMgr* pDocMgr) { return S_OK; }
 
 STDMETHODIMP SubornoTextService::OnUninitDocumentMgr(ITfDocumentMgr* pDocMgr) { return S_OK; }
+
+STDMETHODIMP SubornoTextService::OnSetFocus(ITfContext* pContext, ITfContext* pPrevContext,
+                                            DWORD dwFlags) {
+    return S_OK;
+}
 
 STDMETHODIMP SubornoTextService::OnTestKeyDown(ITfContext* pContext, WPARAM wParam, LPARAM lParam,
                                                BOOL* pbEaten) {
@@ -153,7 +118,7 @@ STDMETHODIMP SubornoTextService::OnKeyDown(ITfContext* pContext, WPARAM wParam, 
     if (pbEaten == nullptr) {
         return E_INVALIDARG;
     }
-    return _OnKeyDown(pContext, wParam, lParam, pbEaten);
+    return _CommitString(pContext, utf8_to_utf16(""));
 }
 
 STDMETHODIMP SubornoTextService::OnKeyUp(ITfContext* pContext, WPARAM wParam, LPARAM lParam,
@@ -165,145 +130,10 @@ STDMETHODIMP SubornoTextService::OnKeyUp(ITfContext* pContext, WPARAM wParam, LP
     return S_OK;
 }
 
-HRESULT SubornoTextService::_AdviseSink(ITfContext* pContext) {
-    if (pContext == nullptr) {
-        return E_INVALIDARG;
-    }
-
-    // Check if already advised
-    if (m_contexts.find(pContext) != m_contexts.end()) {
-        return S_OK;
-    }
-
-    ContextState state;
-    state.hasComposition = false;
-
-    // Advise context sink for edit events
-    wil::com_ptr<ITfSource> source;
-    HRESULT hr = pContext->QueryInterface(IID_PPV_ARGS(&source));
-    if (FAILED(hr)) {
-        return hr;
-    }
-
-    // Store context state
-    m_contexts.emplace(pContext, state);
-    return S_OK;
-}
-
-HRESULT SubornoTextService::_UnadviseSink(ITfContext* pContext) {
-    if (pContext == nullptr) {
-        return E_INVALIDARG;
-    }
-
-    auto it = m_contexts.find(pContext);
-    if (it != m_contexts.end()) {
-        m_contexts.erase(it);
-    }
-
-    return S_OK;
-}
-
-HRESULT SubornoTextService::_OnKeyDown(ITfContext* pContext, WPARAM wParam, LPARAM lParam,
-                                       BOOL* pbEaten) {
-    auto it = m_contexts.find(pContext);
-    if (it == m_contexts.end()) {
-        *pbEaten = FALSE;
-        return S_OK;
-    }
-
-    ContextState& state = it->second;
-
-    // Handle special keys
-    if (wParam == VK_BACK) {
-        // Backspace
-        if (!state.rawInput.empty()) {
-            state.rawInput.pop_back();
-            if (state.rawInput.empty()) {
-                state.hasComposition = false;
-            } else {
-                _CommitString(
-                    pContext,
-                    utf8_to_utf16(
-                        suborno::layouts::phonetic::detail::transliterate_primary(state.rawInput)));
-            }
-            *pbEaten = TRUE;
-            return S_OK;
-        }
-        *pbEaten = FALSE;
-        return S_OK;
-    }
-
-    if (wParam == VK_RETURN || wParam == VK_ESCAPE) {
-        // Commit or cancel composition
-        if (!state.rawInput.empty()) {
-            const auto result =
-                suborno::layouts::phonetic::detail::transliterate_primary(state.rawInput);
-            _CommitString(pContext, utf8_to_utf16(result));
-            state.rawInput.clear();
-            state.hasComposition = false;
-            *pbEaten = TRUE;
-            return S_OK;
-        }
-        *pbEaten = FALSE;
-        return S_OK;
-    }
-
-    if (wParam == VK_SPACE) {
-        // Space commits current composition
-        if (!state.rawInput.empty()) {
-            const auto result =
-                suborno::layouts::phonetic::detail::transliterate_primary(state.rawInput);
-            _CommitString(pContext, utf8_to_utf16(result));
-            state.rawInput.clear();
-            state.hasComposition = false;
-            *pbEaten = TRUE;
-            return S_OK;
-        }
-        *pbEaten = FALSE;
-        return S_OK;
-    }
-
-    // Handle character input (A-Z, a-z)
-    std::string input;
-    if (wParam >= 'A' && wParam <= 'Z') {
-        input.push_back(static_cast<char>(wParam | 0x20));  // lowercase
-    } else if (wParam >= 'a' && wParam <= 'z') {
-        input.push_back(static_cast<char>(wParam));
-    } else {
-        *pbEaten = FALSE;
-        return S_OK;
-    }
-
-    // Process through phonetic engine
-    state.rawInput += input;
-    const auto result = suborno::layouts::phonetic::detail::transliterate_primary(state.rawInput);
-
-    _CommitString(pContext, utf8_to_utf16(result));
-    *pbEaten = TRUE;
-    return S_OK;
-}
-
 HRESULT SubornoTextService::_CommitString(ITfContext* pContext, const std::wstring& text) {
     if (pContext == nullptr || text.empty()) {
         return S_OK;
     }
-
-    // Get selection range
-    TF_SELECTION selection = {};
-    ULONG fetched = 0;
-    HRESULT hr = pContext->GetSelection(m_clientId, TF_DEFAULT_SELECTION, 1, &selection, &fetched);
-    if (FAILED(hr) || fetched == 0) {
-        return hr;
-    }
-
-    wil::com_ptr<ITfRange> range(selection.range);
-
-    // Set text in range
-    hr = range->SetText(m_clientId, 0, text.c_str(), static_cast<LONG>(text.size()));
-    if (FAILED(hr)) {
-        return hr;
-    }
-
     return S_OK;
 }
 
@@ -319,7 +149,7 @@ HRESULT SubornoTextService::CreateInstance(REFIID riid, void** ppv) {
     }
 
     HRESULT hr = service->QueryInterface(riid, ppv);
-    service->Release();  // Release initial reference from new
+    service->Release();
     return hr;
 }
 

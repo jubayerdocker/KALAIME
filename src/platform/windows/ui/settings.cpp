@@ -28,8 +28,8 @@ INT_PTR CALLBACK SettingsDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPAR
 }  // namespace
 
 void ShowSettings(HWND hOwner) {
-    DLGPROC dlgProc = SettingsDialogProc;
-    DialogBoxParamW(nullptr, MAKEINTRESOURCEW(101), hOwner, dlgProc, 0);
+    DialogBoxParamW(nullptr, MAKEINTRESOURCEW(101), hOwner, (DLGPROC)(FARPROC)SettingsDialogProc,
+                    0);
 }
 
 ATOM RegisterStatusWindowClass(HINSTANCE hInstance) {

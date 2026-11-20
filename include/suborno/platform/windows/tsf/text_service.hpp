@@ -11,18 +11,6 @@
 
 namespace suborno::platform::windows {
 
-// CLSID for the Suborno TSF text service
-// {4F1A2B3C-5D6E-7F8A-9B0C-1D2E3F4A5B6C}
-extern const CLSID CLSID_SubornoTextService;
-
-// Language profile GUID
-// {7A1B2C3D-4E5F-6A7B-8C9D-0E1F2A3B4C5D}
-extern const GUID GUID_LANGUAGE_PROFILE_SUBORNO_BENGALI;
-
-// Category GUID for text input processor
-// {8F1A2B3C-5D6E-7F8A-9B0C-1D2E3F4A5B6C}
-extern const GUID CATID_TEXT_INPUT_PROCESSOR_SUBORNO;
-
 // TSF Text Service implementation
 class SubornoTextService final : public ITfTextInputProcessor,
                                  public ITfKeyEventSink,
@@ -49,6 +37,7 @@ class SubornoTextService final : public ITfTextInputProcessor,
     // ITfThreadMgrEventSink
     STDMETHOD(OnInitDocumentMgr)(ITfDocumentMgr* pDocMgr) override;
     STDMETHOD(OnUninitDocumentMgr)(ITfDocumentMgr* pDocMgr) override;
+    STDMETHOD(OnSetFocus)(ITfContext* pContext, ITfContext* pPrevContext, DWORD dwFlags);
 
    public:
     static HRESULT CreateInstance(REFIID riid, void** ppv);
@@ -57,9 +46,6 @@ class SubornoTextService final : public ITfTextInputProcessor,
     SubornoTextService();
     ~SubornoTextService();
 
-    HRESULT _AdviseSink(ITfContext* pContext);
-    HRESULT _UnadviseSink(ITfContext* pContext);
-    HRESULT _OnKeyDown(ITfContext* pContext, WPARAM wParam, LPARAM lParam, BOOL* pbEaten);
     HRESULT _CommitString(ITfContext* pContext, const std::wstring& text);
 
     // COM reference counting
@@ -67,13 +53,10 @@ class SubornoTextService final : public ITfTextInputProcessor,
 
     // TSF interfaces
     wil::com_ptr<ITfThreadMgr> m_threadMgr;
-    wil::com_ptr<ITfSource> m_threadMgrSource;
-    DWORD m_threadMgrSinkCookie = TF_INVALID_COOKIE;
-    TfClientId m_clientId = TF_CLIENTID_NULL;
+    DWORD m_clientId = TF_CLIENTID_NULL;
 
     // Per-context composition state
     struct ContextState {
-        bool hasComposition = false;
         std::string rawInput;  // UTF-8 Roman input
     };
     std::unordered_map<ITfContext*, ContextState> m_contexts;
