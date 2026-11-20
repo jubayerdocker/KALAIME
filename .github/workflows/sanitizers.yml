@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   asan-ubsan:
-    name: ASan/UBSan / Ubuntu 24.04 / GCC 13
+    name: ASan/UBSan / Ubuntu 24.04 / Clang 23
     runs-on: ubuntu-24.04
     env:
       VCPKG_ROOT: ${{ github.workspace }}/.vcpkg
@@ -26,13 +26,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7.0.1
 
-      - name: Install build tools
+      - name: Install build and analysis tools
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential git curl zip unzip tar zstd pkg-config python3
+          scripts/install-llvm-23-ubuntu.sh
           scripts/install-linux-build-tools.sh
-          g++-13 --version | head -1
+          clang++-23 --version
+          cmake --version
+          ninja --version
 
       - name: Install pinned vcpkg
         shell: bash
@@ -43,34 +46,26 @@ jobs:
           "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
 
       - name: Configure with sanitizers
-        run: |
-          cmake -S . -B build/ubuntu-sanitizers -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
-            -DCMAKE_CXX_COMPILER=g++-13 \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DSUBORNO_ENABLE_SANITIZERS=ON \
-            -DBUILD_TESTING=ON \
-            -DVCPKG_MANIFEST_FEATURES='testing'
+        run: cmake --preset ubuntu-sanitizers-clang
 
       - name: Build with sanitizers
-        run: cmake --build build/ubuntu-sanitizers --parallel 1
+        run: cmake --build --preset ubuntu-sanitizers-clang --parallel 1
 
       - name: Run CTest with sanitizers
-        run: ctest --test-dir build/ubuntu-sanitizers --output-on-failure
+        run: ctest --preset ubuntu-sanitizers-clang --output-on-failure
 
       - name: Upload sanitizer results
         if: always()
         uses: actions/upload-artifact@v7.0.2
         with:
           name: sanitizer-results
-          path: build/ubuntu-sanitizers/Testing/Temporary/
+          path: build/ubuntu-sanitizers-clang/Testing/Temporary/
           if-no-files-found: ignore
           retention-days: 7
 
   libfuzzer-clang:
-    name: libFuzzer / Ubuntu 26.04 / Clang 23
-    runs-on: ubuntu-26.04
+    name: libFuzzer / Ubuntu 24.04 / Clang 23
+    runs-on: ubuntu-24.04
     env:
       VCPKG_ROOT: ${{ github.workspace }}/.vcpkg
       VCPKG_MAX_CONCURRENCY: 2

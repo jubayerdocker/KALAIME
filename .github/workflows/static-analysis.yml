@@ -16,8 +16,8 @@ concurrency:
 
 jobs:
   clang-tidy-linux:
-    name: clang-tidy / Ubuntu 26.04
-    runs-on: ubuntu-26.04
+    name: clang-tidy / Ubuntu 24.04
+    runs-on: ubuntu-24.04
     env:
       VCPKG_ROOT: ${{ github.workspace }}/.vcpkg
       VCPKG_MAX_CONCURRENCY: 2
@@ -33,6 +33,7 @@ jobs:
             build-essential git curl zip unzip tar zstd pkg-config python3
           scripts/install-llvm-23-ubuntu.sh
           scripts/install-linux-build-tools.sh
+          clang-tidy-23 --version
 
       - name: Install pinned vcpkg
         shell: bash

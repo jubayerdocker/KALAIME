@@ -52,6 +52,22 @@
       }
     },
     {
+      "name": "ubuntu-sanitizers-clang",
+      "displayName": "Ubuntu ASan/UBSan CI (Clang 23, Ninja)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/ubuntu-sanitizers-clang",
+      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_COMPILER": "clang++-23",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "BUILD_TESTING": "ON",
+        "SUBORNO_ENABLE_SANITIZERS": "ON",
+        "SUBORNO_BUILD_BENCHMARKS": "OFF",
+        "VCPKG_MANIFEST_FEATURES": "testing"
+      }
+    },
+    {
       "name": "windows-msvc",
       "displayName": "Windows production (MSVC v143, x64)",
       "generator": "Visual Studio 17 2022",
@@ -91,6 +107,11 @@
       "jobs": 1
     },
     {
+      "name": "ubuntu-sanitizers-clang",
+      "configurePreset": "ubuntu-sanitizers-clang",
+      "jobs": 1
+    },
+    {
       "name": "windows-msvc-release",
       "configurePreset": "windows-msvc",
       "configuration": "Release",
@@ -121,6 +142,13 @@
     {
       "name": "ubuntu-gcc-ci",
       "configurePreset": "ubuntu-gcc-ci",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "ubuntu-sanitizers-clang",
+      "configurePreset": "ubuntu-sanitizers-clang",
       "output": {
         "outputOnFailure": true
       }

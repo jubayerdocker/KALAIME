@@ -10,8 +10,8 @@ permissions:
 
 jobs:
   clang:
-    name: Clang 23 / Ubuntu 26.04
-    runs-on: ubuntu-26.04
+    name: Clang 23 / Ubuntu 24.04
+    runs-on: ubuntu-24.04
     env:
       VCPKG_ROOT: ${{ github.workspace }}/.vcpkg
       VCPKG_MAX_CONCURRENCY: 2
