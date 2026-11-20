@@ -30,6 +30,7 @@ archive_root="$(zstd --long=30 -dc "${archive}" | tar -tf - | sed -n '1{s#/.*##;
 }
 zstd --long=30 -dc "${archive}" | tar -tf - |
     grep -E "^${archive_root}/(bin/(clang|clang\\+\\+|clangd|clang-tidy|clang-format)(-[0-9]+)?|lib/lib(clang|LLVM)[^/]*\\.so[^/]*|lib/clang/23/)" \
+        | grep -v '/$' \
         > "${file_list}"
 zstd --long=30 -dc "${archive}" | tar -xf - -C "${install_root}" -T "${file_list}"
 

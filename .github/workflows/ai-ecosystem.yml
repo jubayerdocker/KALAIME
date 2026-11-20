@@ -1,0 +1,20 @@
+name: AI Ecosystem Verification
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify instructions, agents, MCP and docs
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Verify ecosystem files
+        run: scripts/verify-ai-ecosystem.sh

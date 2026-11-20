@@ -49,13 +49,19 @@ for tool in gcc g++ make curl pkg-config sha512sum; do
     }
 done
 
-for library in gmp mpfr mpc; do
+for library in gmp mpfr; do
     pkg-config --exists "${library}" || {
         printf 'ERROR: development files for %s are required (install lib%s-dev).\n' \
             "${library}" "${library}" >&2
         exit 1
     }
 done
+
+[[ -f /usr/include/mpc.h ]] &&
+    ldconfig -p | grep -q 'libmpc\.so' || {
+        printf 'ERROR: development files for mpc are required (install libmpc-dev).\n' >&2
+        exit 1
+    }
 
 work_root="$(mktemp -d)"
 archive="${work_root}/gcc-${GCC_VERSION}.tar.xz"
