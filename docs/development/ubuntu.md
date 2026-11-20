@@ -14,7 +14,7 @@ Benchmark are resolved with vcpkg.
 ```bash
 scripts/bootstrap-ubuntu.sh
 export PATH="$HOME/.local/bin:$PATH"
-export VCPKG_ROOT="$HOME/.cache/kalaime/vcpkg"
+export VCPKG_ROOT="$HOME/.cache/suborno/vcpkg"
 ```
 
 The bootstrap's vcpkg checkout is isolated from other checkouts and will not
@@ -30,7 +30,7 @@ from the repository root inspect the proposed manifest changes before
 committing:
 
 ```bash
-export VCPKG_UPDATE_ROOT="$HOME/.cache/kalaime/vcpkg-update"
+export VCPKG_UPDATE_ROOT="$HOME/.cache/suborno/vcpkg-update"
 git clone --filter=blob:none --no-checkout https://github.com/microsoft/vcpkg.git "$VCPKG_UPDATE_ROOT"
 git -C "$VCPKG_UPDATE_ROOT" fetch --depth 1 origin master
 git -C "$VCPKG_UPDATE_ROOT" checkout --detach FETCH_HEAD
@@ -39,7 +39,7 @@ git -C "$VCPKG_UPDATE_ROOT" checkout --detach FETCH_HEAD
 "$VCPKG_UPDATE_ROOT/vcpkg" x-update-baseline
 ```
 
-Run the `x-update-baseline` commands from the KALAIME repository root.
+Run the `x-update-baseline` commands from the SUBORNO-IME repository root.
 The vcpkg-documented `x-update-baseline` command updates the manifest's
 configured registry baselines; it is experimental. Review the changed
 `builtin-baseline` and all resolved package versions, licenses, and platform
@@ -68,7 +68,7 @@ The build preset uses one job for resource-constrained computers. To explicitly
 override the script's job count:
 
 ```bash
-KALAIME_JOBS=2 scripts/build-ubuntu.sh ubuntu-dev
+SUBORNO_JOBS=2 scripts/build-ubuntu.sh ubuntu-dev
 ```
 
 Ninja creates `build/ubuntu-dev/compile_commands.json`, consumed by clangd and
@@ -92,8 +92,8 @@ cmake -S . -B build/ubuntu-benchmarks -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DVCPKG_MANIFEST_FEATURES='testing;benchmarks' \
-  -DKALAIME_BUILD_BENCHMARKS=ON
-cmake --build build/ubuntu-benchmarks --target kalaime_benchmarks --parallel 1
+  -DSUBORNO_BUILD_BENCHMARKS=ON
+cmake --build build/ubuntu-benchmarks --target suborno_benchmarks --parallel 1
 ```
 
 ## Formatting and static analysis

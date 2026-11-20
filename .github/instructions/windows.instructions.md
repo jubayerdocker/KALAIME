@@ -1,5 +1,5 @@
 ---
-applyTo: "src/platform/windows/**,include/kalaime/platform/windows/**,tests/windows/**,.github/workflows/windows-ci.yml,CMakeLists.txt,CMakePresets.json"
+applyTo: "src/platform/windows/**,include/suborno/platform/windows/**,tests/windows/**,.github/workflows/windows-ci.yml,CMakeLists.txt,CMakePresets.json"
 ---
 
 - Use native MSVC v143 and Windows SDK APIs only.

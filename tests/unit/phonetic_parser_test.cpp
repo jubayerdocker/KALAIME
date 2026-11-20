@@ -2,10 +2,10 @@
 
 #include <gtest/gtest.h>
 
-#include "kalaime/layouts/phonetic/kala_phonetic_layout.hpp"
+#include "suborno/layouts/phonetic/suborno_phonetic_layout.hpp"
 
 TEST(PhoneticParserTest, AppliesIndependentAndDependentVowelStateTransitions) {
-    const kalaime::layouts::KalaPhoneticLayout layout;
+    const suborno::layouts::SubornoPhoneticLayout layout;
 
     EXPECT_EQ(layout.transliterate("a"), "আ");
     EXPECT_EQ(layout.transliterate("ka"), "কা");
@@ -16,7 +16,7 @@ TEST(PhoneticParserTest, AppliesIndependentAndDependentVowelStateTransitions) {
 }
 
 TEST(PhoneticParserTest, PreservesCaseSensitiveRetroflexMappings) {
-    const kalaime::layouts::KalaPhoneticLayout layout;
+    const suborno::layouts::SubornoPhoneticLayout layout;
 
     EXPECT_EQ(layout.transliterate("t"), "ত");
     EXPECT_EQ(layout.transliterate("T"), "ট");
@@ -31,7 +31,7 @@ TEST(PhoneticParserTest, PreservesCaseSensitiveRetroflexMappings) {
 }
 
 TEST(PhoneticParserTest, AppliesNasalLookaheadBeforeOrdinaryTokenConsumption) {
-    const kalaime::layouts::KalaPhoneticLayout layout;
+    const suborno::layouts::SubornoPhoneticLayout layout;
 
     EXPECT_EQ(layout.transliterate("ng"), "ং");
     EXPECT_EQ(layout.transliterate("nga"), "ঙা");
@@ -53,7 +53,7 @@ TEST(PhoneticParserTest, AppliesNasalLookaheadBeforeOrdinaryTokenConsumption) {
 }
 
 TEST(PhoneticParserTest, NasalAlternatesAreNotGeneratedForNgkOrNk) {
-    const kalaime::layouts::KalaPhoneticLayout layout;
+    const suborno::layouts::SubornoPhoneticLayout layout;
 
     EXPECT_EQ(layout.generate_candidates("ngk").size(), 1U);
     EXPECT_EQ(layout.generate_candidates("ngk").front().text, "ংক");
@@ -62,7 +62,7 @@ TEST(PhoneticParserTest, NasalAlternatesAreNotGeneratedForNgkOrNk) {
 }
 
 TEST(PhoneticParserTest, TreatsMAndHAsSignsWithoutAddingVirama) {
-    const kalaime::layouts::KalaPhoneticLayout layout;
+    const suborno::layouts::SubornoPhoneticLayout layout;
 
     EXPECT_EQ(layout.transliterate("M"), "ং");
     EXPECT_EQ(layout.transliterate("H"), "ঃ");
@@ -73,7 +73,7 @@ TEST(PhoneticParserTest, TreatsMAndHAsSignsWithoutAddingVirama) {
 }
 
 TEST(PhoneticParserTest, AppliesExplicitControlTransitionsAndModifiers) {
-    const kalaime::layouts::KalaPhoneticLayout layout;
+    const suborno::layouts::SubornoPhoneticLayout layout;
 
     EXPECT_EQ(layout.transliterate(":danda:"), "\u0964");
     EXPECT_EQ(layout.transliterate(":ddanda:"), "\u0965");
@@ -96,7 +96,7 @@ TEST(PhoneticParserTest, AppliesExplicitControlTransitionsAndModifiers) {
 }
 
 TEST(PhoneticParserTest, ExercisesValidAndInvalidControlContexts) {
-    const kalaime::layouts::KalaPhoneticLayout layout;
+    const suborno::layouts::SubornoPhoneticLayout layout;
 
     EXPECT_EQ(layout.transliterate("k:boundary:t"), "কত");
     EXPECT_EQ(layout.transliterate("a:boundary:i"), "আই");
@@ -133,7 +133,7 @@ TEST(PhoneticParserTest, ExercisesValidAndInvalidControlContexts) {
 }
 
 TEST(PhoneticParserTest, MapsDigitsAndHonorsExplicitEscapes) {
-    const kalaime::layouts::KalaPhoneticLayout layout;
+    const suborno::layouts::SubornoPhoneticLayout layout;
 
     EXPECT_EQ(layout.transliterate("0123456789"), "০১২৩৪৫৬৭৮৯");
     EXPECT_EQ(layout.transliterate("\\0"), "0");
@@ -143,24 +143,24 @@ TEST(PhoneticParserTest, MapsDigitsAndHonorsExplicitEscapes) {
 }
 
 TEST(PhoneticParserTest, DistinguishesPendingAndCommittedIncompleteControls) {
-    const auto pending = kalaime::layouts::phonetic::detail::parse_primary("ami:dan", false);
+    const auto pending = suborno::layouts::phonetic::detail::parse_primary("ami:dan", false);
     EXPECT_TRUE(pending.pending);
     EXPECT_EQ(pending.text, "আমি");
 
-    const auto committed = kalaime::layouts::phonetic::detail::parse_primary("ami:dan", true);
+    const auto committed = suborno::layouts::phonetic::detail::parse_primary("ami:dan", true);
     EXPECT_FALSE(committed.pending);
     EXPECT_EQ(committed.text, "আমি:dan");
 
-    const auto escape_pending = kalaime::layouts::phonetic::detail::parse_primary("ami\\", false);
+    const auto escape_pending = suborno::layouts::phonetic::detail::parse_primary("ami\\", false);
     EXPECT_TRUE(escape_pending.pending);
     EXPECT_EQ(escape_pending.text, "আমি");
 
-    EXPECT_THROW(kalaime::layouts::phonetic::detail::transliterate_primary("\xF0\x80"),
+    EXPECT_THROW(suborno::layouts::phonetic::detail::transliterate_primary("\xF0\x80"),
                  std::invalid_argument);
 }
 
 TEST(PhoneticParserTest, EmitsExplicitConjunctSequencesAndNfcOutput) {
-    const kalaime::layouts::KalaPhoneticLayout layout;
+    const suborno::layouts::SubornoPhoneticLayout layout;
 
     EXPECT_EQ(layout.transliterate("kt"), "ক\u09CDত");
     EXPECT_EQ(layout.transliterate("kya"), "ক\u09CDযা");
@@ -170,7 +170,7 @@ TEST(PhoneticParserTest, EmitsExplicitConjunctSequencesAndNfcOutput) {
 }
 
 TEST(PhoneticParserTest, KeepsLegacyExamplesAsTokenDerivedOutput) {
-    const kalaime::layouts::KalaPhoneticLayout layout;
+    const suborno::layouts::SubornoPhoneticLayout layout;
 
     EXPECT_EQ(layout.transliterate("ami"), "আমি");
     EXPECT_EQ(layout.transliterate("bangla"), "বাংলা");
@@ -182,7 +182,7 @@ TEST(PhoneticParserTest, KeepsLegacyExamplesAsTokenDerivedOutput) {
 }
 
 TEST(PhoneticParserTest, KeepsLegacyVectorsTokenDerivedWithoutWordExceptions) {
-    const kalaime::layouts::KalaPhoneticLayout layout;
+    const suborno::layouts::SubornoPhoneticLayout layout;
 
     EXPECT_EQ(layout.transliterate("nodi"), "নোদি");
     EXPECT_EQ(layout.transliterate("Dhaka"), "ঢাকা");

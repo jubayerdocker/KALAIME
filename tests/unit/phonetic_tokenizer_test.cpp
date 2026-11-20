@@ -12,10 +12,10 @@
 
 namespace {
 
-using kalaime::layouts::phonetic::detail::match_token;
-using kalaime::layouts::phonetic::detail::token_registry;
-using kalaime::layouts::phonetic::detail::TokenKind;
-using kalaime::layouts::phonetic::detail::TokenMatch;
+using suborno::layouts::phonetic::detail::match_token;
+using suborno::layouts::phonetic::detail::token_registry;
+using suborno::layouts::phonetic::detail::TokenKind;
+using suborno::layouts::phonetic::detail::TokenMatch;
 
 struct TokenGolden {
     std::string_view input;
@@ -143,7 +143,7 @@ void expect_token_golden(const TokenGolden& golden) {
     const TokenMatch matched = *match;
     EXPECT_EQ(matched.definition->input, golden.input);
     EXPECT_EQ(matched.byte_length, golden.input.size());
-    EXPECT_EQ(kalaime::layouts::phonetic::detail::transliterate_primary(golden.input),
+    EXPECT_EQ(suborno::layouts::phonetic::detail::transliterate_primary(golden.input),
               golden.output)
         << golden.input;
 }
@@ -185,7 +185,7 @@ TEST(PhoneticTokenizerTest, RegistryContainsExactlyTheNormativeInputTokens) {
 TEST(PhoneticTokenizerTest, EveryNormativeVowelHasAnIndependentDependentForm) {
     for (const TokenGolden& golden : kDependentVowelGoldens) {
         const std::string input = "k" + std::string(golden.input);
-        EXPECT_EQ(kalaime::layouts::phonetic::detail::transliterate_primary(input), golden.output)
+        EXPECT_EQ(suborno::layouts::phonetic::detail::transliterate_primary(input), golden.output)
             << golden.input;
     }
 }

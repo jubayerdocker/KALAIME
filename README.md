@@ -1,9 +1,9 @@
-# KALA Input (KALAIME)
+# SUBORNO Input (SUBORNO-IME)
 
-**KALA** is the brand; **KALA Input** is the product; **KALAIME** is the
+**SUBORNO** is the brand; **SUBORNO Input** is the product; **SUBORNO-IME** is the
 technical project.
 
-KALAIME is a portable C++20 Bangla phonetic engine under active development,
+SUBORNO-IME is a portable C++20 Bangla phonetic engine under active development,
 with a native Windows TSF/COM adapter planned. The repository now contains
 a working phonetic parser, layout registry, independent composition sessions,
 SQLite-backed dictionary, candidate ranking, settings persistence and build
@@ -48,7 +48,7 @@ Windows SDK or MSVC.
 ```bash
 scripts/bootstrap-ubuntu.sh
 export PATH="$HOME/.local/bin:$PATH"
-export VCPKG_ROOT="$HOME/.cache/kalaime/vcpkg"
+export VCPKG_ROOT="$HOME/.cache/suborno/vcpkg"
 scripts/configure-ubuntu.sh
 scripts/build-ubuntu.sh
 scripts/test-ubuntu.sh
@@ -56,7 +56,7 @@ scripts/check-format-ubuntu.sh
 scripts/check-tidy-ubuntu.sh
 ```
 
-By default, builds use one job. Set `KALAIME_JOBS` to a positive integer to
+By default, builds use one job. Set `SUBORNO_JOBS` to a positive integer to
 override this for `scripts/build-ubuntu.sh`. Benchmarks are disabled in normal
 development builds; see [Ubuntu development instructions](docs/development/ubuntu.md)
 to enable the optional target.

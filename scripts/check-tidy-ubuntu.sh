@@ -17,7 +17,7 @@ command -v "${tidy}" >/dev/null 2>&1 || {
 "${tidy}" -p "${build_dir}" \
     "${PROJECT_ROOT}/src/core/project.cpp" \
     "${PROJECT_ROOT}/src/unicode/bengali.cpp" \
-    "${PROJECT_ROOT}/src/layouts/phonetic/kala_phonetic_layout.cpp" \
+    "${PROJECT_ROOT}/src/layouts/phonetic/suborno_phonetic_layout.cpp" \
     "${PROJECT_ROOT}/src/layouts/phonetic/phonetic_input_session.cpp" \
     "${PROJECT_ROOT}/src/layouts/phonetic/phonetic_parser.cpp" \
     "${PROJECT_ROOT}/src/layouts/phonetic/phonetic_tokenizer.cpp" \

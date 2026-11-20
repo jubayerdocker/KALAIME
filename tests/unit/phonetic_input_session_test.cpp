@@ -1,11 +1,11 @@
-#include "kalaime/layouts/phonetic/phonetic_input_session.hpp"
+#include "suborno/layouts/phonetic/phonetic_input_session.hpp"
 
 #include <gtest/gtest.h>
 
 #include <string>
 
-using kalaime::layouts::InputStatus;
-using kalaime::layouts::PhoneticInputSession;
+using suborno::layouts::InputStatus;
+using suborno::layouts::PhoneticInputSession;
 
 TEST(PhoneticInputSessionTest, AppendsValidInputAndCommitsPrimaryOutput) {
     PhoneticInputSession session;

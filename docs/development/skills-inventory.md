@@ -1,4 +1,4 @@
-# KALAIME AI Agent Skills Inventory
+# SUBORNO AI Agent Skills Inventory
 
 ## Scope
 
@@ -60,8 +60,8 @@ npx skills remove <skill-name> --agent github-copilot
 
 - No dedicated, source-inspected skills.sh TSF/IME, COM, MSVC, ICU, or native Windows text-service Specialist was found.
 - `bengali-nlp` is cross-language NLP guidance rather than a verified C++/ICU implementation Skill, so it was not installed.
-- The CMake Skill includes generic GCC/Clang and cross-compilation examples. KALAIME's Windows production compiler remains MSVC v143; Ubuntu remains a portability environment.
-- The Modern C++ Skill contains C++26 suggestions. KALAIME's implementation standard remains C++20 unless a separate approved roadmap change is made.
+- The CMake Skill includes generic GCC/Clang and cross-compilation examples. SUBORNO's Windows production compiler remains MSVC v143; Ubuntu remains a portability environment.
+- The Modern C++ Skill contains C++26 suggestions. SUBORNO's implementation standard remains C++20 unless a separate approved roadmap change is made.
 - Skills.sh leaderboard popularity is telemetry, not evidence of Skill correctness or security.
 - Skills.sh's public ranking page and CLI state that no security guarantee is made by the ecosystem.
 

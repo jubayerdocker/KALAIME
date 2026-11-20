@@ -1,6 +1,6 @@
 # Bengali Unicode support
 
-KALAIME's shared engine accepts UTF-8. ICU 79.1 supplies Unicode 18 data,
+SUBORNO's shared engine accepts UTF-8. ICU 79.1 supplies Unicode 18 data,
 normalization, and Extended Grapheme Cluster boundaries. The native Windows
 boundary may perform UTF-16 conversion; that adapter is outside the phonetic
 engine milestone.

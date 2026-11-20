@@ -1,6 +1,6 @@
 # AI Engineering Ecosystem
 
-KALAIME uses lightweight repository-native AI customization:
+SUBORNO uses lightweight repository-native AI customization:
 
 - Copilot repository instructions for shared rules.
 - Path instructions for C++, Windows, tests and documentation.

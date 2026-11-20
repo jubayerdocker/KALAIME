@@ -1,6 +1,6 @@
 # Code of Conduct
 
-KALAIME contributors are expected to treat one another with respect and to
+SUBORNO contributors are expected to treat one another with respect and to
 keep project discussions constructive, inclusive, and focused on the work.
 Harassment, discrimination, personal attacks, and abusive behavior are not
 acceptable.

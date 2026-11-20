@@ -1,4 +1,4 @@
-#include "kalaime/dictionary/dictionary.hpp"
+#include "suborno/dictionary/dictionary.hpp"
 
 #include <sqlite3.h>
 
@@ -10,7 +10,7 @@
 #include <utility>
 #include <vector>
 
-namespace kalaime::dictionary {
+namespace suborno::dictionary {
 
 DictionaryError::DictionaryError(DictionaryErrorCategory category, int sqlite_code,
                                  const std::string& message)
@@ -37,6 +37,10 @@ struct Dictionary::Impl {
         if (sqlite3_open(database_path.string().c_str(), &db) != SQLITE_OK) {
             const int code = db == nullptr ? SQLITE_CANTOPEN : sqlite3_extended_errcode(db);
             const char* text = db == nullptr ? nullptr : sqlite3_errmsg(db);
+            if (db != nullptr) {
+                sqlite3_close(db);
+                db = nullptr;
+            }
             throw DictionaryError(
                 DictionaryErrorCategory::open, code,
                 text == nullptr ? "Unable to open dictionary database" : std::string(text));
@@ -275,4 +279,4 @@ std::vector<std::string> Dictionary::words_for_prefix(const std::string& prefix)
     return results;
 }
 
-}  // namespace kalaime::dictionary
+}  // namespace suborno::dictionary

@@ -1,10 +1,10 @@
-# KALAIME Repository Instructions
+# SUBORNO Repository Instructions
 
 ## Project Identity
 
-- Brand: KALA
-- Product: KALA Input
-- Technical project: KALAIME
+- Brand: SUBORNO
+- Product: SUBORNO Input
+- Technical project: SUBORNO-IME
 - Shared C++20 engine with independent layout modules and platform adapters
 - First production platform: Windows 10 x64
 - Desktop UI is outside scope

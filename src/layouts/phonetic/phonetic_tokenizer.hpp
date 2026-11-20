@@ -5,7 +5,7 @@
 #include <span>
 #include <string_view>
 
-namespace kalaime::layouts::phonetic::detail {
+namespace suborno::layouts::phonetic::detail {
 
 enum class TokenKind {
     vowel,
@@ -32,4 +32,4 @@ struct TokenMatch {
 std::span<const TokenDefinition> token_registry() noexcept;
 std::optional<TokenMatch> match_token(std::string_view input, std::size_t offset) noexcept;
 
-}  // namespace kalaime::layouts::phonetic::detail
+}  // namespace suborno::layouts::phonetic::detail

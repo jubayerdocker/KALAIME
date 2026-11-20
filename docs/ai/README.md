@@ -1,4 +1,4 @@
-# KALAIME AI Engineering Ecosystem
+# SUBORNO AI Engineering Ecosystem
 
 This directory documents the repository's AI-assisted development environment.
 It complements existing build, architecture and security documentation.

@@ -1,4 +1,4 @@
-#include "kalaime/unicode/bengali.hpp"
+#include "suborno/unicode/bengali.hpp"
 
 #include <unicode/brkiter.h>
 #include <unicode/locid.h>
@@ -12,7 +12,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace kalaime::unicode {
+namespace suborno::unicode {
 namespace {
 
 icu::UnicodeString to_unicode_string(std::string_view text) {
@@ -186,4 +186,4 @@ std::vector<std::string> split_graphemes(const std::string& text) {
     return result;
 }
 
-}  // namespace kalaime::unicode
+}  // namespace suborno::unicode

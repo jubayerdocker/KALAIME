@@ -1,9 +1,9 @@
-#include "kalaime/settings/settings.hpp"
+#include "suborno/settings/settings.hpp"
 
 #include <fstream>
 #include <system_error>
 
-namespace kalaime::settings {
+namespace suborno::settings {
 namespace {
 
 constexpr int kSettingsVersion = 1;
@@ -164,4 +164,4 @@ SettingsStatus SettingsStore::save(const EngineSettings& settings) const {
     return SettingsStatus::ok;
 }
 
-}  // namespace kalaime::settings
+}  // namespace suborno::settings

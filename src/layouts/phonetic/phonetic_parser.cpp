@@ -11,10 +11,10 @@
 #include <unordered_set>
 #include <utility>
 
-#include "kalaime/unicode/bengali.hpp"
+#include "suborno/unicode/bengali.hpp"
 #include "phonetic_tokenizer.hpp"
 
-namespace kalaime::layouts::phonetic::detail {
+namespace suborno::layouts::phonetic::detail {
 namespace {
 
 enum class ParserState : std::uint8_t {
@@ -322,7 +322,7 @@ ParseStep process_escape(ParseContext& context) {
     }
 
     const auto graphemes =
-        kalaime::unicode::split_graphemes(std::string(context.input.substr(context.offset + 1)));
+        suborno::unicode::split_graphemes(std::string(context.input.substr(context.offset + 1)));
     const std::string& escaped = graphemes.front();
     context.result.append(escaped);
     context.offset += 1 + escaped.size();
@@ -420,7 +420,7 @@ ParseResult parse_internal(std::string_view input, bool final_input,
                            std::vector<AmbiguitySite>* discovered_sites,
                            const std::vector<AmbiguitySite>* selected_sites,
                            const std::vector<std::size_t>* choices) {
-    if (!kalaime::unicode::is_valid_utf8(input)) {
+    if (!suborno::unicode::is_valid_utf8(input)) {
         throw std::invalid_argument("Input is not valid UTF-8");
     }
 
@@ -461,7 +461,7 @@ ParseResult parse_internal(std::string_view input, bool final_input,
         context.offset += length;
     }
 
-    return {kalaime::unicode::normalize_nfc(context.result), context.pending,
+    return {suborno::unicode::normalize_nfc(context.result), context.pending,
             context.flags.literal_passthrough};
 }
 
@@ -473,7 +473,7 @@ std::string transliterate_primary(std::string_view input) {
     return parse_primary(input, true).text;
 }
 
-std::vector<kalaime::layout::Candidate> generate_candidates(std::string_view input) {
+std::vector<suborno::layout::Candidate> generate_candidates(std::string_view input) {
     constexpr std::size_t kMaxCandidates = 16;
 
     std::vector<AmbiguitySite> sites;
@@ -505,7 +505,7 @@ std::vector<kalaime::layout::Candidate> generate_candidates(std::string_view inp
         paths = std::move(expanded);
     }
 
-    std::vector<kalaime::layout::Candidate> candidates;
+    std::vector<suborno::layout::Candidate> candidates;
     candidates.reserve(paths.size());
     std::unordered_set<std::string> seen;
     seen.reserve(paths.size());
@@ -516,14 +516,17 @@ std::vector<kalaime::layout::Candidate> generate_candidates(std::string_view inp
         }
         const std::size_t rank = candidates.size();
         candidates.push_back(
-            {parsed.text, 1.0 / static_cast<double>(rank + 1),
+            {parsed.text, parsed.text, "layout:" + parsed.text,
+             suborno::layout::CandidateSource::layout, 1.0 / static_cast<double>(rank + 1),
              rank == 0 ? "primary phonetic output" : "phonetic alternative combination"});
     }
 
     if (candidates.empty()) {
-        candidates.push_back({primary.text, 1.0, "primary phonetic output"});
+        candidates.push_back({primary.text, primary.text, "layout:" + primary.text,
+                              suborno::layout::CandidateSource::layout, 1.0,
+                              "primary phonetic output"});
     }
     return candidates;
 }
 
-}  // namespace kalaime::layouts::phonetic::detail
+}  // namespace suborno::layouts::phonetic::detail

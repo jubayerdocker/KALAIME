@@ -2,10 +2,10 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "KALAIME unit tests (Ubuntu)",
+      "name": "SUBORNO unit tests (Ubuntu)",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/build/ubuntu-dev/kalaime_unit_tests",
+      "program": "${workspaceFolder}/build/ubuntu-dev/suborno_unit_tests",
       "args": [],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",

@@ -1,4 +1,4 @@
-# KALAIME Production Readiness Decisions
+# SUBORNO Production Readiness Decisions
 
 ## Accepted repository decisions
 

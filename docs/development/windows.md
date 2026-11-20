@@ -48,4 +48,4 @@ interactive Windows UI. Those require a controlled, interactive Windows
 verification session.
 
 Artifacts are attached to successful `Windows MSVC CI` workflow runs under
-`kalaime-windows-msvc-v143-x64`.
+`suborno-windows-msvc-v143-x64`.

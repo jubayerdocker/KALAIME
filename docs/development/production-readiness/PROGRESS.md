@@ -1,4 +1,4 @@
-# KALAIME Production Readiness Progress
+# SUBORNO Production Readiness Progress
 
 ## 2026-11-20
 
@@ -6,7 +6,7 @@
 
 - Re-established repository baseline.
 - Verified branch `main`.
-- Re-verified current KALAIME source and build targets.
+- Re-verified current SUBORNO source and build targets.
 - Re-verified the 7 project Skills and 9 custom agents.
 - Re-verified Microsoft Learn MCP read-only endpoint.
 - Created the production-readiness tracking directory.
@@ -28,6 +28,9 @@
 - Built Ubuntu CI Clang preset and passed 2/2 CTest suites.
 - Generated SPDX SBOM and ran Grype: no vulnerabilities found for installed dependencies.
 - Added corrupt-database, old-schema migration and prefix/reset dictionary tests.
+- Added public C ABI, declarative layout loader, deterministic language intelligence
+  and Linux/macOS platform adapter contracts.
+- Windows COM/TSF native implementation remains blocked in this Linux environment.
 
 ### In progress
 

@@ -1,6 +1,6 @@
-# Privacy and security boundaries for KALAIME
+# Privacy and security boundaries for SUBORNO
 
-KALAIME does not collect or transmit typed text by default. The first release stores local dictionary and user settings in SQLite under the current user profile and avoids any network transmission of composition data.
+SUBORNO does not collect or transmit typed text by default. The first release stores local dictionary and user settings in SQLite under the current user profile and avoids any network transmission of composition data.
 
 ## Requirements
 

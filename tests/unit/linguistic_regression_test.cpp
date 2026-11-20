@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
-#include "kalaime/layouts/phonetic/kala_phonetic_layout.hpp"
+#include "suborno/layouts/phonetic/suborno_phonetic_layout.hpp"
 
 TEST(LinguisticRegressionTest, CoreBanglaVectorsRemainStable) {
-    const kalaime::layouts::KalaPhoneticLayout layout;
+    const suborno::layouts::SubornoPhoneticLayout layout;
     const struct {
         const char* input;
         const char* output;

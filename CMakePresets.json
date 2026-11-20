@@ -17,7 +17,7 @@
         "CMAKE_CXX_COMPILER": "clang++-23",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "BUILD_TESTING": "ON",
-        "KALAIME_BUILD_BENCHMARKS": "OFF",
+        "SUBORNO_BUILD_BENCHMARKS": "OFF",
         "VCPKG_MANIFEST_FEATURES": "testing"
       }
     },
@@ -32,8 +32,7 @@
         "CMAKE_CXX_COMPILER": "clang++-23",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "BUILD_TESTING": "ON",
-        "KALAIME_BUILD_BENCHMARKS": "OFF",
-        "KALAIME_ENABLE_MSVC_ANALYSIS": "OFF",
+        "SUBORNO_ENABLE_MSVC_ANALYSIS": "OFF",
         "VCPKG_MANIFEST_FEATURES": "testing"
       }
     },
@@ -48,7 +47,7 @@
         "CMAKE_CXX_COMPILER": "g++-13",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "BUILD_TESTING": "ON",
-        "KALAIME_BUILD_BENCHMARKS": "OFF",
+        "SUBORNO_BUILD_BENCHMARKS": "OFF",
         "VCPKG_MANIFEST_FEATURES": "testing"
       }
     },
@@ -70,8 +69,7 @@
         "CMAKE_CXX_STANDARD": "20",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "OFF",
         "BUILD_TESTING": "ON",
-        "KALAIME_BUILD_BENCHMARKS": "OFF",
-        "KALAIME_ENABLE_MSVC_ANALYSIS": "ON",
+        "SUBORNO_ENABLE_MSVC_ANALYSIS": "ON",
         "VCPKG_MANIFEST_FEATURES": "testing"
       }
     }

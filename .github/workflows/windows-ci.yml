@@ -41,8 +41,8 @@ jobs:
           if (-not $msbuild) { throw "MSBuild was not found in the Visual Studio installation." }
           Write-Host "MSBuild: $($msbuild.FullName)"
           $vcvars = "$vs\VC\Auxiliary\Build\vcvars64.bat"
-          $smokeSource = Join-Path $env:TEMP 'kalaime-msvc-smoke.cpp'
-          $smokeObject = Join-Path $env:TEMP 'kalaime-msvc-smoke.obj'
+          $smokeSource = Join-Path $env:TEMP 'suborno-msvc-smoke.cpp'
+          $smokeObject = Join-Path $env:TEMP 'suborno-msvc-smoke.obj'
           Set-Content -Path $smokeSource -Value 'int main() { return 0; }' -NoNewline
           cmd /c "`"$vcvars`" > nul && cl /nologo /EHsc /std:c++20 /c `"$smokeSource`" /Fo:`"$smokeObject`""
           if ($LASTEXITCODE -ne 0) { throw "Unable to initialize or verify the MSVC x64 compiler." }
@@ -92,7 +92,7 @@ jobs:
       - name: Upload Windows build artifacts
         uses: actions/upload-artifact@v7.0.2
         with:
-          name: kalaime-windows-msvc-v143-x64
+          name: suborno-windows-msvc-v143-x64
           path: |
             build/windows-msvc/Release/*.dll
             build/windows-msvc/Debug/*.dll

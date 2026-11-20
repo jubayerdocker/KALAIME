@@ -1,4 +1,4 @@
-# KALAIME Agent Skills Usage Guide
+# SUBORNO Agent Skills Usage Guide
 
 ## Task Routing
 
@@ -19,7 +19,7 @@ existing repository. They are research findings, not source changes.
 
 ### Modern C++ and ownership
 
-The `modern-cpp` workflow identified [dictionary.hpp](/workspaces/codespaces-blank/KALAIME/include/kalaime/dictionary/dictionary.hpp)
+The `modern-cpp` workflow identified [dictionary.hpp](/workspaces/codespaces-blank/KALAIME/include/suborno/dictionary/dictionary.hpp)
 as a PIMPL ownership point. The public type owns `Impl*` but does not yet
 explicitly delete copy operations or document move semantics. This is a
 potential copy-safety risk, not a demonstrated runtime double-delete. The
@@ -34,7 +34,7 @@ The Windows production build already rejects unsupported compilers, includes
 expanded with a fallback compiler.
 
 The CMake test graph remains a buildable scaffold: no real TSF or COM target
-is exported. `kalaime_windows_tsf` is still a smoke boundary.
+is exported. `suborno_windows_tsf` is still a smoke boundary.
 
 ### C++ testing
 
@@ -58,7 +58,7 @@ layout alternatives are separate, as they should be, but no Engine-owned seam
 currently combines them.
 
 `PhoneticInputSession` has a concrete layout dependency and creates
-`KalaPhoneticLayout` internally. Future composition sessions need layout
+`SubornoPhoneticLayout` internally. Future composition sessions need layout
 injection or a layout handle supplied by a registry/Engine; the interface
 should hide layout construction details.
 

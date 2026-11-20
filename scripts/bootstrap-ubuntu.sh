@@ -3,7 +3,7 @@ set -euo pipefail
 
 readonly REQUIRED_UBUNTU="24.04"
 readonly VCPKG_BASELINE="0df93a05b9de080129e653ec4776d7e14a1b2e4f"
-readonly VCPKG_DEFAULT_ROOT="${HOME}/.cache/kalaime/vcpkg"
+readonly VCPKG_DEFAULT_ROOT="${HOME}/.cache/suborno/vcpkg"
 
 fail() {
     printf 'ERROR: %s\n' "$*" >&2

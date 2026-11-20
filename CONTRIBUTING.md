@@ -1,12 +1,12 @@
 # Contributing
 
-KALAIME is currently infrastructure-only. Keep changes within the approved
+SUBORNO is currently infrastructure-only. Keep changes within the approved
 Windows-first, Ubuntu-developed C++20 scope unless a project decision says
 otherwise.
 
 ## Repository conventions
 
-- Put platform-independent APIs under `include/kalaime/` and implementations
+- Put platform-independent APIs under `include/suborno/` and implementations
   in the corresponding `src/` area.
 - Put Windows SDK, COM, TSF, and WIL usage exclusively under
   `src/platform/windows/`; do not make portable targets require those headers.

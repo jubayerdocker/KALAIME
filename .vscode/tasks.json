@@ -2,36 +2,36 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "KALAIME: Configure Ubuntu",
+      "label": "SUBORNO: Configure Ubuntu",
       "type": "shell",
       "command": "${workspaceFolder}/scripts/configure-ubuntu.sh",
       "args": ["ubuntu-dev"],
       "problemMatcher": ["$gcc"]
     },
     {
-      "label": "KALAIME: Build Ubuntu",
+      "label": "SUBORNO: Build Ubuntu",
       "type": "shell",
       "command": "${workspaceFolder}/scripts/build-ubuntu.sh",
       "args": ["ubuntu-dev"],
-      "dependsOn": "KALAIME: Configure Ubuntu",
+      "dependsOn": "SUBORNO: Configure Ubuntu",
       "problemMatcher": ["$gcc"]
     },
     {
-      "label": "KALAIME: Test Ubuntu",
+      "label": "SUBORNO: Test Ubuntu",
       "type": "shell",
       "command": "${workspaceFolder}/scripts/test-ubuntu.sh",
       "args": ["ubuntu-dev"],
-      "dependsOn": "KALAIME: Build Ubuntu",
+      "dependsOn": "SUBORNO: Build Ubuntu",
       "problemMatcher": ["$gcc"]
     },
     {
-      "label": "KALAIME: Check formatting",
+      "label": "SUBORNO: Check formatting",
       "type": "shell",
       "command": "${workspaceFolder}/scripts/check-format-ubuntu.sh",
       "problemMatcher": []
     },
     {
-      "label": "KALAIME: Run clang-tidy",
+      "label": "SUBORNO: Run clang-tidy",
       "type": "shell",
       "command": "${workspaceFolder}/scripts/check-tidy-ubuntu.sh",
       "problemMatcher": ["$gcc"]

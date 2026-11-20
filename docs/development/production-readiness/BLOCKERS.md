@@ -1,4 +1,4 @@
-# KALAIME Production Readiness Blockers
+# SUBORNO Production Readiness Blockers
 
 ## Active blockers
 
@@ -7,6 +7,8 @@
 3. Interactive Windows application compatibility is untested.
 4. Windows COM/TSF implementation is not implemented.
 5. Installer, signing and clean-machine verification are not implemented.
+6. IBus and Fcitx 5 development libraries are not installed.
+7. macOS SDK and InputMethodKit host are unavailable.
 
 ## Recovery
 

@@ -1,4 +1,4 @@
-# KALAIME phonetic mapping specification
+# SUBORNO phonetic mapping specification
 
 The shared C++20 engine uses a clean-room, case-sensitive Roman-token registry.
 The registry is immutable and parsed by longest exact-token match. It does not

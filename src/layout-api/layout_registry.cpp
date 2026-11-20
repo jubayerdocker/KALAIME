@@ -1,8 +1,8 @@
-#include "kalaime/layout-api/layout_registry.hpp"
+#include "suborno/layout-api/layout_registry.hpp"
 
 #include <utility>
 
-namespace kalaime::layout {
+namespace suborno::layout {
 
 bool LayoutRegistry::register_layout(std::string_view id, std::unique_ptr<PhoneticLayout> layout) {
     if (id.empty() || layout == nullptr) {
@@ -17,6 +17,24 @@ bool LayoutRegistry::register_layout(std::string_view id, std::unique_ptr<Phonet
         active_id_ = key;
     }
     return true;
+}
+
+bool LayoutRegistry::register_layout(std::string_view id, std::unique_ptr<PhoneticLayout> layout,
+                                     LayoutMetadata metadata) {
+    const std::string key(id);
+    if (metadata.id.empty()) {
+        metadata.id = key;
+    }
+    if (!register_layout(id, std::move(layout))) {
+        return false;
+    }
+    metadata_[key] = std::move(metadata);
+    return true;
+}
+
+const LayoutMetadata* LayoutRegistry::find_metadata(std::string_view id) const noexcept {
+    const auto iterator = metadata_.find(std::string(id));
+    return iterator == metadata_.end() ? nullptr : &iterator->second;
 }
 
 bool LayoutRegistry::set_active(std::string_view id) noexcept {
@@ -39,4 +57,4 @@ const PhoneticLayout* LayoutRegistry::active() const noexcept {
 
 std::string_view LayoutRegistry::active_id() const noexcept { return active_id_; }
 
-}  // namespace kalaime::layout
+}  // namespace suborno::layout

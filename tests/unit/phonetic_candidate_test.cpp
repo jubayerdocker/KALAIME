@@ -3,11 +3,11 @@
 #include <cmath>
 #include <vector>
 
-#include "kalaime/layouts/phonetic/kala_phonetic_layout.hpp"
+#include "suborno/layouts/phonetic/suborno_phonetic_layout.hpp"
 
 namespace {
 
-void expect_candidate_texts(const std::vector<kalaime::layout::Candidate>& candidates,
+void expect_candidate_texts(const std::vector<suborno::layout::Candidate>& candidates,
                             const std::vector<std::string>& expected) {
     ASSERT_EQ(candidates.size(), expected.size());
     for (std::size_t index = 0; index < expected.size(); ++index) {
@@ -19,14 +19,14 @@ void expect_candidate_texts(const std::vector<kalaime::layout::Candidate>& candi
 }  // namespace
 
 TEST(PhoneticCandidateTest, OrdersChAndShWholeTokenAndSplitAlternatives) {
-    const kalaime::layouts::KalaPhoneticLayout layout;
+    const suborno::layouts::SubornoPhoneticLayout layout;
 
     expect_candidate_texts(layout.generate_candidates("ch"), {"ছ", "চ\u09CDহ", "চ"});
     expect_candidate_texts(layout.generate_candidates("sh"), {"শ", "ষ", "স\u09CDহ"});
 }
 
 TEST(PhoneticCandidateTest, GeneratesLongestMatchAndVowelAlternatives) {
-    const kalaime::layouts::KalaPhoneticLayout layout;
+    const suborno::layouts::SubornoPhoneticLayout layout;
 
     expect_candidate_texts(layout.generate_candidates("chh"), {"ছ", "ছ\u09CDহ"});
     expect_candidate_texts(layout.generate_candidates("ksh"), {"ক\u09CDষ", "ক\u09CDশ"});
@@ -43,7 +43,7 @@ TEST(PhoneticCandidateTest, GeneratesLongestMatchAndVowelAlternatives) {
 }
 
 TEST(PhoneticCandidateTest, GeneratesAllAmbiguityCombinationsInStableOrder) {
-    const kalaime::layouts::KalaPhoneticLayout layout;
+    const suborno::layouts::SubornoPhoneticLayout layout;
     const auto candidates = layout.generate_candidates("ch sh");
 
     expect_candidate_texts(candidates, {"ছ শ", "চ\u09CDহ শ", "ছ ষ", "চ\u09CDহ ষ", "চ শ",
@@ -51,7 +51,7 @@ TEST(PhoneticCandidateTest, GeneratesAllAmbiguityCombinationsInStableOrder) {
 }
 
 TEST(PhoneticCandidateTest, AppliesTheSixteenCandidateCapAndDeduplicatesOutputs) {
-    const kalaime::layouts::KalaPhoneticLayout layout;
+    const suborno::layouts::SubornoPhoneticLayout layout;
     const auto candidates = layout.generate_candidates("chchchchchchchchchch");
 
     ASSERT_EQ(candidates.size(), 16U);

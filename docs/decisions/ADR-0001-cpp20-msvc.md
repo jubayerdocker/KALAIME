@@ -4,7 +4,7 @@ Status: Accepted
 
 ## Context
 
-KALAIME targets a native Windows x64 IME. The product requires strong interoperability with the Windows IME stack, COM, and TSF interfaces. The project must also support a lightweight Ubuntu-first development workflow.
+SUBORNO targets a native Windows x64 IME. The product requires strong interoperability with the Windows IME stack, COM, and TSF interfaces. The project must also support a lightweight Ubuntu-first development workflow.
 
 ## Decision
 

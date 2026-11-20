@@ -1,33 +1,39 @@
-#include "kalaime/candidates/candidate_engine.hpp"
+#include "suborno/candidates/candidate_engine.hpp"
 
 #include <unordered_set>
 
-#include "kalaime/dictionary/dictionary.hpp"
-#include "kalaime/unicode/bengali.hpp"
+#include "suborno/dictionary/dictionary.hpp"
+#include "suborno/unicode/bengali.hpp"
 
-namespace kalaime::candidates {
+namespace suborno::candidates {
 
-CandidateEngine::CandidateEngine(const kalaime::layout::PhoneticLayout& layout) : layout_(layout) {}
-CandidateEngine::CandidateEngine(const kalaime::layout::PhoneticLayout& layout,
-                                 const kalaime::dictionary::Dictionary& dictionary)
+CandidateEngine::CandidateEngine(const suborno::layout::PhoneticLayout& layout) : layout_(layout) {}
+CandidateEngine::CandidateEngine(const suborno::layout::PhoneticLayout& layout,
+                                 const suborno::dictionary::Dictionary& dictionary)
     : layout_(layout), dictionary_(&dictionary) {}
 
-std::vector<kalaime::layout::Candidate> CandidateEngine::make_candidates(
+std::vector<suborno::layout::Candidate> CandidateEngine::make_candidates(
     const std::string& input) const {
-    std::vector<kalaime::layout::Candidate> result;
+    std::vector<suborno::layout::Candidate> result;
     std::unordered_set<std::string> seen;
 
-    const std::string normalized = kalaime::unicode::normalize_nfc(layout_.transliterate(input));
+    const std::string normalized = suborno::unicode::normalize_nfc(layout_.transliterate(input));
 
     if (dictionary_ != nullptr) {
         for (const std::string& word : dictionary_->find_matches(normalized)) {
             if (seen.insert(word).second) {
-                result.push_back({word, 1.0, "exact dictionary match"});
+                const std::string normalized_word = suborno::unicode::normalize_nfc(word);
+                result.push_back({word, normalized_word, "system-dictionary:" + normalized_word,
+                                  suborno::layout::CandidateSource::system_dictionary, 1.0,
+                                  "exact dictionary match"});
             }
         }
         for (const std::string& word : dictionary_->find_matches(input)) {
             if (seen.insert(word).second) {
-                result.push_back({word, 1.0, "phonetic dictionary match"});
+                const std::string normalized_word = suborno::unicode::normalize_nfc(word);
+                result.push_back({word, normalized_word, "system-dictionary:" + normalized_word,
+                                  suborno::layout::CandidateSource::system_dictionary, 0.9,
+                                  "phonetic dictionary match"});
             }
         }
     }
@@ -46,4 +52,4 @@ std::vector<kalaime::layout::Candidate> CandidateEngine::make_candidates(
     return result;
 }
 
-}  // namespace kalaime::candidates
+}  // namespace suborno::candidates

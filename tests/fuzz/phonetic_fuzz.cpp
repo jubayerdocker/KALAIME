@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <string>
 
-#include "kalaime/layouts/phonetic/phonetic_input_session.hpp"
+#include "suborno/layouts/phonetic/phonetic_input_session.hpp"
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, std::size_t size) {
     if (data == nullptr) {
@@ -10,7 +10,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, std::size_t size) {
     }
 
     const std::string input(reinterpret_cast<const char*>(data), size);
-    kalaime::layouts::PhoneticInputSession session;
+    suborno::layouts::PhoneticInputSession session;
     session.append_utf8(input);
     session.snapshot();
     session.backspace();

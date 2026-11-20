@@ -9,13 +9,13 @@ implemented.
 
 ## Platform boundaries
 
-- `kalaime_core` is a portable C++20 static library.
-- `kalaime_unicode` carries ICU link requirements; `kalaime_persistence`
-  carries SQLite requirements. `kalaime_layout_api` and
-  `kalaime_dictionary` mark intended module boundaries but implement no
+- `suborno_core` is a portable C++20 static library.
+- `suborno_unicode` carries ICU link requirements; `suborno_persistence`
+  carries SQLite requirements. `suborno_layout_api` and
+  `suborno_dictionary` mark intended module boundaries but implement no
   product feature.
 - `src/platform/windows/` is excluded from non-Windows configurations.
-  `kalaime_windows_tsf` is a native shared-library target and build boundary;
+  `suborno_windows_tsf` is a native shared-library target and build boundary;
   its smoke source includes the Windows SDK TSF interface declarations and
   calls a Win32 API to verify that the DLL target compiles and links. It is not
   a COM server or TSF text service.
@@ -31,23 +31,23 @@ Android adapters are outside the current target.
 ## Build and dependency graph
 
 ```text
-kalaime_core
-  ├── kalaime_unicode ── ICU4C
-  ├── kalaime_layout_api
-  ├── kalaime_dictionary
-  └── kalaime_persistence ── SQLite
+suborno_core
+  ├── suborno_unicode ── ICU4C
+  ├── suborno_layout_api
+  ├── suborno_dictionary
+  └── suborno_persistence ── SQLite
 
-kalaime_windows_tsf (Windows only, shared library)
+suborno_windows_tsf (Windows only, shared library)
   └── WIL
 
-kalaime_unit_tests / kalaime_integration_tests
+suborno_unit_tests / suborno_integration_tests
   └── GoogleTest (development feature)
 
-kalaime_benchmarks (optional)
+suborno_benchmarks (optional)
   └── Google Benchmark (development feature)
 ```
 
-`BUILD_TESTING` controls GoogleTest targets. `KALAIME_BUILD_BENCHMARKS` is off
+`BUILD_TESTING` controls GoogleTest targets. `SUBORNO_BUILD_BENCHMARKS` is off
 by default. CMake target-scoped options enforce C++20 and warning policies.
 Ubuntu presets use Ninja and export `compile_commands.json`; Visual Studio
 generators use their supported configuration mechanism and do not rely on that

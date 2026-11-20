@@ -2,7 +2,7 @@
 
 #include <array>
 
-namespace kalaime::layouts::phonetic::detail {
+namespace suborno::layouts::phonetic::detail {
 namespace {
 
 using Kind = TokenKind;
@@ -81,4 +81,4 @@ std::optional<TokenMatch> match_token(std::string_view input, std::size_t offset
     return TokenMatch{best_match, best_match->input.size()};
 }
 
-}  // namespace kalaime::layouts::phonetic::detail
+}  // namespace suborno::layouts::phonetic::detail

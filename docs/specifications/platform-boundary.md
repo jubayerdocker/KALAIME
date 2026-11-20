@@ -4,8 +4,8 @@
 
 Portable C++20 targets must not include Windows headers or WIL. ICU and SQLite
 are surfaced through dependency-specific targets. Intended module boundaries
-are represented by `kalaime_layout_api`, `kalaime_dictionary`, and
-`kalaime_persistence`; these targets do not currently implement product logic.
+are represented by `suborno_layout_api`, `suborno_dictionary`, and
+`suborno_persistence`; these targets do not currently implement product logic.
 
 ## Windows-only code
 
