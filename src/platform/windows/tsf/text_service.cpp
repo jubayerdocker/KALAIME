@@ -7,6 +7,7 @@
 #include <locale>
 #include <string>
 
+#include "../../../layouts/phonetic/phonetic_parser.hpp"
 #include "suborno/core/engine.hpp"
 #include "suborno/layouts/phonetic/suborno_phonetic_layout.hpp"
 #include "suborno/unicode/bengali.hpp"
@@ -92,15 +93,16 @@ STDMETHODIMP SubornoTextService::Activate(ITfThreadMgr* pThreadMgr, TfClientId c
     m_clientId = clientId;
 
     // Get the source interface for advising sinks
-    HRESULT hr = m_threadMgr.query_as(&m_threadMgrSource);
+    HRESULT hr = m_threadMgr->QueryInterface(IID_PPV_ARGS(&m_threadMgrSource));
     if (FAILED(hr)) {
         return hr;
     }
 
     // Advise thread manager sink
-    DWORD cookie = TF_INVALID_COOKIE;
+    m_threadMgrSinkCookie = TF_INVALID_COOKIE;
     hr = m_threadMgrSource->AdviseSink(IID_ITfThreadMgrEventSink,
-                                       static_cast<ITfThreadMgrEventSink*>(this), &cookie);
+                                       static_cast<ITfThreadMgrEventSink*>(this),
+                                       &m_threadMgrSinkCookie);
     if (FAILED(hr)) {
         return hr;
     }
@@ -111,8 +113,7 @@ STDMETHODIMP SubornoTextService::Activate(ITfThreadMgr* pThreadMgr, TfClientId c
 STDMETHODIMP SubornoTextService::Deactivate() {
     // Unadvise thread manager sink
     if (m_threadMgrSource) {
-        m_threadMgrSource->UnadviseSink(IID_ITfThreadMgrEventSink,
-                                        static_cast<ITfThreadMgrEventSink*>(this));
+        m_threadMgrSource->UnadviseSink(m_threadMgrSinkCookie);
         m_threadMgrSource.reset();
     }
 
@@ -128,17 +129,6 @@ STDMETHODIMP SubornoTextService::Deactivate() {
 STDMETHODIMP SubornoTextService::OnInitDocumentMgr(ITfDocumentMgr* pDocMgr) { return S_OK; }
 
 STDMETHODIMP SubornoTextService::OnUninitDocumentMgr(ITfDocumentMgr* pDocMgr) { return S_OK; }
-
-STDMETHODIMP SubornoTextService::OnSetFocus(ITfContext* pContext, ITfContext* pPrevContext,
-                                            DWORD dwFlags) {
-    if (pContext != nullptr) {
-        _AdviseSink(pContext);
-    }
-    if (pPrevContext != nullptr) {
-        _UnadviseSink(pPrevContext);
-    }
-    return S_OK;
-}
 
 STDMETHODIMP SubornoTextService::OnTestKeyDown(ITfContext* pContext, WPARAM wParam, LPARAM lParam,
                                                BOOL* pbEaten) {
@@ -190,7 +180,7 @@ HRESULT SubornoTextService::_AdviseSink(ITfContext* pContext) {
 
     // Advise context sink for edit events
     wil::com_ptr<ITfSource> source;
-    HRESULT hr = pContext.query_as(&source);
+    HRESULT hr = pContext->QueryInterface(IID_PPV_ARGS(&source));
     if (FAILED(hr)) {
         return hr;
     }
@@ -209,7 +199,6 @@ HRESULT SubornoTextService::_UnadviseSink(ITfContext* pContext) {
     auto it = m_contexts.find(pContext);
     if (it != m_contexts.end()) {
         if (it->second.composition) {
-            it->second.composition->Terminate();
             it->second.composition.reset();
         }
         m_contexts.erase(it);
@@ -235,7 +224,6 @@ HRESULT SubornoTextService::_OnKeyDown(ITfContext* pContext, WPARAM wParam, LPAR
             state.rawInput.pop_back();
             if (state.rawInput.empty()) {
                 if (state.composition) {
-                    state.composition->Terminate();
                     state.composition.reset();
                     state.hasComposition = false;
                 }
@@ -261,7 +249,6 @@ HRESULT SubornoTextService::_OnKeyDown(ITfContext* pContext, WPARAM wParam, LPAR
             _CommitString(pContext, utf8_to_utf16(result));
             state.rawInput.clear();
             if (state.composition) {
-                state.composition->Terminate();
                 state.composition.reset();
                 state.hasComposition = false;
             }
@@ -280,7 +267,6 @@ HRESULT SubornoTextService::_OnKeyDown(ITfContext* pContext, WPARAM wParam, LPAR
             _CommitString(pContext, utf8_to_utf16(result));
             state.rawInput.clear();
             if (state.composition) {
-                state.composition->Terminate();
                 state.composition.reset();
                 state.hasComposition = false;
             }
@@ -329,14 +315,13 @@ HRESULT SubornoTextService::_CommitString(ITfContext* pContext, const std::wstri
 
     // Get selection range
     wil::com_ptr<ITfRange> range;
-    hr = pContext->GetSelection(TF_DEFAULT_SELECTION, 1, &range, nullptr);
+    hr = pContext->GetSelection(m_clientId, TF_DEFAULT_SELECTION, 1, &range, nullptr);
     if (FAILED(hr)) {
         return hr;
     }
 
     // Set text in range
-    hr = range->SetText(pContext, TF_SETTEXT_AUTOTRIM | TF_SETTEXT_IMPORTANT, text.c_str(),
-                        static_cast<UINT>(text.size()));
+    hr = range->SetText(pContext, 0, text.c_str(), static_cast<UINT>(text.size()));
     if (FAILED(hr)) {
         return hr;
     }
@@ -359,7 +344,7 @@ HRESULT SubornoTextService::_SetComposition(ITfContext* pContext, const std::wst
 
     // Create composition
     ITfComposition* composition = nullptr;
-    HRESULT hr = pContext->StartComposition(m_clientId, nullptr, &composition, TF_CS_FORCESAVE);
+    HRESULT hr = pContext->StartComposition(m_clientId, nullptr, &composition, 0);
     if (FAILED(hr)) {
         return hr;
     }
@@ -369,13 +354,12 @@ HRESULT SubornoTextService::_SetComposition(ITfContext* pContext, const std::wst
 
     // Set composition text
     wil::com_ptr<ITfRange> range;
-    hr = pContext->GetSelection(TF_DEFAULT_SELECTION, 1, &range, nullptr);
+    hr = pContext->GetSelection(m_clientId, TF_DEFAULT_SELECTION, 1, &range, nullptr);
     if (FAILED(hr)) {
         return hr;
     }
 
-    hr = range->SetText(pContext, TF_SETTEXT_AUTOTRIM | TF_SETTEXT_IMPORTANT, reading.c_str(),
-                        static_cast<UINT>(reading.size()));
+    hr = range->SetText(pContext, 0, reading.c_str(), static_cast<UINT>(reading.size()));
     return hr;
 }
 

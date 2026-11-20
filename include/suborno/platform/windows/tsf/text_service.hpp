@@ -49,7 +49,6 @@ class SubornoTextService final : public ITfTextInputProcessor,
     // ITfThreadMgrEventSink
     STDMETHOD(OnInitDocumentMgr)(ITfDocumentMgr* pDocMgr) override;
     STDMETHOD(OnUninitDocumentMgr)(ITfDocumentMgr* pDocMgr) override;
-    STDMETHOD(OnSetFocus)(ITfContext* pContext, ITfContext* pPrevContext, DWORD dwFlags) override;
 
    public:
     static HRESULT CreateInstance(REFIID riid, void** ppv);
@@ -71,6 +70,7 @@ class SubornoTextService final : public ITfTextInputProcessor,
     // TSF interfaces
     wil::com_ptr<ITfThreadMgr> m_threadMgr;
     wil::com_ptr<ITfSource> m_threadMgrSource;
+    DWORD m_threadMgrSinkCookie = TF_INVALID_COOKIE;
     TfClientId m_clientId = TF_CLIENTID_NULL;
 
     // Per-context composition state
