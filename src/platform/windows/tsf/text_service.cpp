@@ -130,17 +130,6 @@ STDMETHODIMP SubornoTextService::OnInitDocumentMgr(ITfDocumentMgr* pDocMgr) { re
 
 STDMETHODIMP SubornoTextService::OnUninitDocumentMgr(ITfDocumentMgr* pDocMgr) { return S_OK; }
 
-STDMETHODIMP SubornoTextService::OnSetFocus(ITfContext* pContext, ITfContext* pPrevContext,
-                                            DWORD dwFlags) {
-    if (pContext != nullptr) {
-        _AdviseSink(pContext);
-    }
-    if (pPrevContext != nullptr) {
-        _UnadviseSink(pPrevContext);
-    }
-    return S_OK;
-}
-
 STDMETHODIMP SubornoTextService::OnTestKeyDown(ITfContext* pContext, WPARAM wParam, LPARAM lParam,
                                                BOOL* pbEaten) {
     if (pbEaten == nullptr) {
