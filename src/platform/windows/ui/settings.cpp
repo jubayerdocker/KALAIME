@@ -28,7 +28,8 @@ INT_PTR CALLBACK SettingsDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPAR
 }  // namespace
 
 void ShowSettings(HWND hOwner) {
-    DialogBoxParamW(nullptr, MAKEINTRESOURCEW(101), hOwner, SettingsDialogProc, 0);
+    DialogBoxParamW(nullptr, MAKEINTRESOURCEW(101), hOwner,
+                    reinterpret_cast<DLGPROC>(SettingsDialogProc), 0);
 }
 
 ATOM RegisterStatusWindowClass(HINSTANCE hInstance) {
@@ -39,7 +40,7 @@ ATOM RegisterStatusWindowClass(HINSTANCE hInstance) {
         return DefWindowProcW(hWnd, msg, wParam, lParam);
     };
     wcex.hInstance = hInstance;
-    wcex.hCursor = LoadCursorW(nullptr, IDC_ARROW);
+    wcex.hCursor = LoadCursorW(nullptr, reinterpret_cast<LPCWSTR>(IDC_ARROW));
     wcex.lpszClassName = kStatusWindowClass;
     return RegisterClassExW(&wcex);
 }

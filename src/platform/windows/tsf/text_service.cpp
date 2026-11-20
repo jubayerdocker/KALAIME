@@ -130,6 +130,17 @@ STDMETHODIMP SubornoTextService::OnInitDocumentMgr(ITfDocumentMgr* pDocMgr) { re
 
 STDMETHODIMP SubornoTextService::OnUninitDocumentMgr(ITfDocumentMgr* pDocMgr) { return S_OK; }
 
+STDMETHODIMP SubornoTextService::OnSetFocus(ITfContext* pContext, ITfContext* pPrevContext,
+                                            DWORD dwFlags) {
+    if (pContext != nullptr) {
+        _AdviseSink(pContext);
+    }
+    if (pPrevContext != nullptr) {
+        _UnadviseSink(pPrevContext);
+    }
+    return S_OK;
+}
+
 STDMETHODIMP SubornoTextService::OnTestKeyDown(ITfContext* pContext, WPARAM wParam, LPARAM lParam,
                                                BOOL* pbEaten) {
     if (pbEaten == nullptr) {
@@ -195,12 +206,8 @@ HRESULT SubornoTextService::_UnadviseSink(ITfContext* pContext) {
         return E_INVALIDARG;
     }
 
-    // End any active composition
     auto it = m_contexts.find(pContext);
     if (it != m_contexts.end()) {
-        if (it->second.composition) {
-            it->second.composition.reset();
-        }
         m_contexts.erase(it);
     }
 
@@ -223,16 +230,12 @@ HRESULT SubornoTextService::_OnKeyDown(ITfContext* pContext, WPARAM wParam, LPAR
         if (!state.rawInput.empty()) {
             state.rawInput.pop_back();
             if (state.rawInput.empty()) {
-                if (state.composition) {
-                    state.composition.reset();
-                    state.hasComposition = false;
-                }
+                state.hasComposition = false;
             } else {
-                _SetComposition(
+                _CommitString(
                     pContext,
                     utf8_to_utf16(
-                        suborno::layouts::phonetic::detail::transliterate_primary(state.rawInput)),
-                    L"");
+                        suborno::layouts::phonetic::detail::transliterate_primary(state.rawInput)));
             }
             *pbEaten = TRUE;
             return S_OK;
@@ -248,10 +251,7 @@ HRESULT SubornoTextService::_OnKeyDown(ITfContext* pContext, WPARAM wParam, LPAR
                 suborno::layouts::phonetic::detail::transliterate_primary(state.rawInput);
             _CommitString(pContext, utf8_to_utf16(result));
             state.rawInput.clear();
-            if (state.composition) {
-                state.composition.reset();
-                state.hasComposition = false;
-            }
+            state.hasComposition = false;
             *pbEaten = TRUE;
             return S_OK;
         }
@@ -266,10 +266,7 @@ HRESULT SubornoTextService::_OnKeyDown(ITfContext* pContext, WPARAM wParam, LPAR
                 suborno::layouts::phonetic::detail::transliterate_primary(state.rawInput);
             _CommitString(pContext, utf8_to_utf16(result));
             state.rawInput.clear();
-            if (state.composition) {
-                state.composition.reset();
-                state.hasComposition = false;
-            }
+            state.hasComposition = false;
             *pbEaten = TRUE;
             return S_OK;
         }
@@ -292,7 +289,7 @@ HRESULT SubornoTextService::_OnKeyDown(ITfContext* pContext, WPARAM wParam, LPAR
     state.rawInput += input;
     const auto result = suborno::layouts::phonetic::detail::transliterate_primary(state.rawInput);
 
-    _SetComposition(pContext, utf8_to_utf16(result), L"");
+    _CommitString(pContext, utf8_to_utf16(result));
     *pbEaten = TRUE;
     return S_OK;
 }
@@ -302,65 +299,23 @@ HRESULT SubornoTextService::_CommitString(ITfContext* pContext, const std::wstri
         return S_OK;
     }
 
-    wil::com_ptr<ITfEditSession> editSession;
-    // Create a simple edit session that commits the text
-    // For simplicity, we use ITfContext::RequestEditSession
-
-    // Request a write lock and insert text
-    HRESULT hr =
-        pContext->RequestEditSession(m_clientId, nullptr, TF_ES_SYNC | TF_ES_READWRITE, nullptr);
-    if (FAILED(hr)) {
-        return hr;
-    }
-
     // Get selection range
-    wil::com_ptr<ITfRange> range;
-    hr = pContext->GetSelection(m_clientId, TF_DEFAULT_SELECTION, 1, &range, nullptr);
-    if (FAILED(hr)) {
+    TF_SELECTION selection = {};
+    ULONG fetched = 0;
+    HRESULT hr = pContext->GetSelection(m_clientId, TF_DEFAULT_SELECTION, 1, &selection, &fetched);
+    if (FAILED(hr) || fetched == 0) {
         return hr;
     }
+
+    wil::com_ptr<ITfRange> range(selection.range);
 
     // Set text in range
-    hr = range->SetText(pContext, 0, text.c_str(), static_cast<UINT>(text.size()));
+    hr = range->SetText(m_clientId, 0, text.c_str(), static_cast<LONG>(text.size()));
     if (FAILED(hr)) {
         return hr;
     }
 
     return S_OK;
-}
-
-HRESULT SubornoTextService::_SetComposition(ITfContext* pContext, const std::wstring& reading,
-                                            const std::wstring& result) {
-    if (pContext == nullptr) {
-        return S_OK;
-    }
-
-    auto it = m_contexts.find(pContext);
-    if (it == m_contexts.end()) {
-        return S_OK;
-    }
-
-    ContextState& state = it->second;
-
-    // Create composition
-    ITfComposition* composition = nullptr;
-    HRESULT hr = pContext->StartComposition(m_clientId, nullptr, &composition, 0);
-    if (FAILED(hr)) {
-        return hr;
-    }
-
-    state.composition = composition;
-    state.hasComposition = true;
-
-    // Set composition text
-    wil::com_ptr<ITfRange> range;
-    hr = pContext->GetSelection(m_clientId, TF_DEFAULT_SELECTION, 1, &range, nullptr);
-    if (FAILED(hr)) {
-        return hr;
-    }
-
-    hr = range->SetText(pContext, 0, reading.c_str(), static_cast<UINT>(reading.size()));
-    return hr;
 }
 
 HRESULT SubornoTextService::CreateInstance(REFIID riid, void** ppv) {

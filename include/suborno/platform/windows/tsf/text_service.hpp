@@ -49,6 +49,7 @@ class SubornoTextService final : public ITfTextInputProcessor,
     // ITfThreadMgrEventSink
     STDMETHOD(OnInitDocumentMgr)(ITfDocumentMgr* pDocMgr) override;
     STDMETHOD(OnUninitDocumentMgr)(ITfDocumentMgr* pDocMgr) override;
+    STDMETHOD(OnSetFocus)(ITfContext* pContext, ITfContext* pPrevContext, DWORD dwFlags) override;
 
    public:
     static HRESULT CreateInstance(REFIID riid, void** ppv);
@@ -61,8 +62,6 @@ class SubornoTextService final : public ITfTextInputProcessor,
     HRESULT _UnadviseSink(ITfContext* pContext);
     HRESULT _OnKeyDown(ITfContext* pContext, WPARAM wParam, LPARAM lParam, BOOL* pbEaten);
     HRESULT _CommitString(ITfContext* pContext, const std::wstring& text);
-    HRESULT _SetComposition(ITfContext* pContext, const std::wstring& reading,
-                            const std::wstring& result);
 
     // COM reference counting
     ULONG m_refCount = 0;
@@ -75,11 +74,8 @@ class SubornoTextService final : public ITfTextInputProcessor,
 
     // Per-context composition state
     struct ContextState {
-        wil::com_ptr<ITfComposition> composition;
-        DWORD editCookie = TF_INVALID_COOKIE;
-        DWORD sinkCookie = TF_INVALID_COOKIE;
-        std::string rawInput;  // UTF-8 Roman input
         bool hasComposition = false;
+        std::string rawInput;  // UTF-8 Roman input
     };
     std::unordered_map<ITfContext*, ContextState> m_contexts;
 };
