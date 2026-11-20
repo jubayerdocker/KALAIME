@@ -63,8 +63,8 @@ jobs:
           retention-days: 7
 
   gcc:
-    name: GCC 16.2 / Ubuntu 26.04
-    runs-on: ubuntu-26.04
+    name: GCC 13 / Ubuntu 24.04
+    runs-on: ubuntu-24.04
     env:
       VCPKG_ROOT: ${{ github.workspace }}/.vcpkg
       VCPKG_MAX_CONCURRENCY: 2
@@ -76,13 +76,10 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            build-essential git curl zip unzip tar zstd pkg-config python3 \
-            libgmp-dev libmpfr-dev libmpc-dev
+            build-essential git curl zip unzip tar zstd pkg-config python3
           scripts/install-linux-build-tools.sh
-          scripts/install-gcc-16-ubuntu.sh
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          export PATH="$HOME/.local/bin:$PATH"
-          g++-16 -dumpfullversion | grep -Fx '16.2.0'
+          g++-13 -dumpfullversion | grep -Fx '13.3.0'
+          gcc-13 -dumpfullversion | grep -Fx '13.3.0'
           cmake --version | grep -F '4.5.0'
           ninja --version | grep -Fx '1.13.2'
 
@@ -106,7 +103,7 @@ jobs:
           import shutil
           import subprocess
 
-          expected = pathlib.Path(shutil.which("g++-16")).resolve(strict=True)
+          expected = pathlib.Path(shutil.which("g++-13")).resolve(strict=True)
           cache = pathlib.Path("build/ubuntu-gcc-ci/CMakeCache.txt").read_text()
           compiler_entry = next(
               line for line in cache.splitlines()
@@ -123,7 +120,7 @@ jobs:
           version = subprocess.check_output(
               [str(expected), "-dumpfullversion"], text=True
           ).strip()
-          assert version == "16.2.0", f"Unexpected compiler version: {version}"
+          assert version == "13.3.0", f"Unexpected compiler version: {version}"
 
           commands = json.loads(
               pathlib.Path("build/ubuntu-gcc-ci/compile_commands.json").read_text()

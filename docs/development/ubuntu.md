@@ -2,8 +2,8 @@
 
 The supported development host is Ubuntu 24.04 LTS x86_64. The bootstrap
 script checks the OS and architecture, installs LLVM/Clang 23 from the official
-stable release artifact, builds GCC 16.2.0 from its checksum-verified official
-source release, installs CMake 4.5.0 and Ninja 1.13.2 from verified upstream
+stable release artifact, uses the existing Ubuntu GCC 13 toolchain, installs
+CMake 4.5.0 and Ninja 1.13.2 from verified upstream
 release artifacts, installs Syft and Grype using Anchore's official installers,
 and creates a vcpkg checkout at the pinned baseline. It does not install
 redundant apt copies of project libraries: ICU, SQLite, GoogleTest, and Google
@@ -73,7 +73,7 @@ KALAIME_JOBS=2 scripts/build-ubuntu.sh ubuntu-dev
 
 Ninja creates `build/ubuntu-dev/compile_commands.json`, consumed by clangd and
 clang-tidy. The development preset explicitly uses `clang++-23`; the GCC CI
-preset explicitly uses `g++-16` (GCC 16.2.0). GCC CI checks the configured
+preset explicitly uses `g++-13` (GCC 13). GCC CI checks the configured
 compiler and every entry in `build/ubuntu-gcc-ci/compile_commands.json` after
 configuration, without compiling sources. These checks verify compiler
 selection, not successful compilation or runtime behavior; those require the
@@ -110,8 +110,8 @@ individual file locally, run:
 clang-format-23 -i path/to/file.cpp
 ```
 
-`clang-tidy-23` reads the configured compile database. `g++-16` is built from
-the official GCC 16.2.0 source release during bootstrap. CMake/clangd/clang-tidy
+`clang-tidy-23` reads the configured compile database. `g++-13` is provided by
+Ubuntu 24.04 and remains unmodified. CMake/clangd/clang-tidy
 diagnostics in this environment apply to portable sources only; Ubuntu does
 not supply Windows SDK, MSVC COM declarations, or TSF headers. Windows-only
 sources are checked by Windows CI with MSVC and `/analyze`.

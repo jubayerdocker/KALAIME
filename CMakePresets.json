@@ -39,13 +39,13 @@
     },
     {
       "name": "ubuntu-gcc-ci",
-      "displayName": "Ubuntu GCC compatibility CI (Ninja)",
+      "displayName": "Ubuntu GCC 13 compatibility CI (Ninja)",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/ubuntu-gcc-ci",
       "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_CXX_COMPILER": "g++-16",
+        "CMAKE_CXX_COMPILER": "g++-13",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "BUILD_TESTING": "ON",
         "KALAIME_BUILD_BENCHMARKS": "OFF",
