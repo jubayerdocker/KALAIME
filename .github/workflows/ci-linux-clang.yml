@@ -16,8 +16,8 @@ concurrency:
 
 jobs:
   clang-build-test:
-    name: Clang 23 Build & Test / Ubuntu 26.04
-    runs-on: ubuntu-26.04
+    name: Clang 23 Build & Test / Ubuntu 24.04
+    runs-on: ubuntu-24.04
     env:
       VCPKG_ROOT: ${{ github.workspace }}/.vcpkg
       VCPKG_MAX_CONCURRENCY: 2

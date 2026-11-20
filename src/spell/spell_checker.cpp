@@ -12,16 +12,13 @@
 namespace bengali {
 
 // Independent vowels (স্বরবর্ণ)
-inline constexpr std::u32string_view vowels =
-    U"অআইঈউঊঋঌএঐওঔৠৡ";
+inline constexpr std::u32string_view vowels = U"অআইঈউঊঋঌএঐওঔৠৡ";
 
 // Consonants (ব্যঞ্জনবর্ণ)
-inline constexpr std::u32string_view consonants =
-    U"কখগঘঙচছজঝঞটঠডঢণতথদধনপফবভমযরলশষসহ";
+inline constexpr std::u32string_view consonants = U"কখগঘঙচছজঝঞটঠডঢণতথদধনপফবভমযরলশষসহ";
 
 // Additional Bengali consonants (অতিরিক্ত ব্যঞ্জনবর্ণ)
-inline constexpr std::u32string_view additional_consonants =
-    U"ৎড়ঢ়য়";
+inline constexpr std::u32string_view additional_consonants = U"ৎড়ঢ়য়";
 
 // All letters usable as base replacement candidates
 inline constexpr std::u32string_view replacements =
@@ -30,24 +27,19 @@ inline constexpr std::u32string_view replacements =
     U"ৎড়ঢ়য়";
 
 // Dependent vowel signs (স্বরচিহ্ন / কার)
-inline constexpr std::u32string_view vowel_signs =
-    U"ািীুূৃৄেৈোৌৢৣ";
+inline constexpr std::u32string_view vowel_signs = U"ািীুূৃৄেৈোৌৢৣ";
 
 // Other Bengali signs (অন্যান্য চিহ্ন)
-inline constexpr std::u32string_view signs =
-    U"ঁংঃ়্ঽৗ৾";
+inline constexpr std::u32string_view signs = U"ঁংঃ়্ঽৗ৾";
 
 // Bengali digits (বাংলা অঙ্ক)
-inline constexpr std::u32string_view digits =
-    U"০১২৩৪৫৬৭৮৯";
+inline constexpr std::u32string_view digits = U"০১২৩৪৫৬৭৮৯";
 
 // Bengali punctuation (বাংলা দাঁড়ি ও দ্বি-দাঁড়ি)
-inline constexpr std::u32string_view punctuation =
-    U"।॥";
+inline constexpr std::u32string_view punctuation = U"।॥";
 
 // Historical and special Bengali-block characters
-inline constexpr std::u32string_view extended_symbols =
-    U"ঀ৲৳৴৵৶৷৸৹৺৻ৼ৽";
+inline constexpr std::u32string_view extended_symbols = U"ঀ৲৳৴৵৶৷৸৹৺৻ৼ৽";
 
 }  // namespace bengali
 
