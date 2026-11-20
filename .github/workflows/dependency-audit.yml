@@ -33,7 +33,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential git curl zip unzip tar zstd pkg-config python3
+          scripts/install-llvm-23-ubuntu.sh
           scripts/install-linux-build-tools.sh
+          clang++-23 --version
+          cmake --version
+          ninja --version
 
       - name: Install SBOM and vulnerability tools
         shell: bash

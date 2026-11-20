@@ -57,16 +57,7 @@ jobs:
       - name: Verify toolchain versions
         shell: pwsh
         run: |
-          & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | ForEach-Object {
-            $vs = $_
-            $toolsets = Get-ChildItem "$vs\VC\Tools\MSVC" -Directory | Where-Object { $_.Name -match '^14\.3\d+\.' } | Select-Object -First 1
-            if ($toolsets) {
-              Write-Host "Selected MSVC toolset: $($toolsets.Name)"
-            }
-          }
-          cl /? | Select-Object -First 1
           cmake --version | Select-Object -First 1
-          ninja --version | Select-Object -First 1
 
       - name: Install pinned vcpkg
         shell: pwsh
