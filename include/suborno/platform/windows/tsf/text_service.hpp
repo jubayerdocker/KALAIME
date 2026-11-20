@@ -37,7 +37,7 @@ class SubornoTextService final : public ITfTextInputProcessor,
     // ITfThreadMgrEventSink
     STDMETHOD(OnInitDocumentMgr)(ITfDocumentMgr* pDocMgr) override;
     STDMETHOD(OnUninitDocumentMgr)(ITfDocumentMgr* pDocMgr) override;
-    STDMETHOD(OnSetFocus)(ITfContext* pContext, ITfContext* pPrevContext, DWORD dwFlags);
+    STDMETHOD(OnSetFocus)(ITfContext* pContext, ITfContext* pPrevContext, DWORD dwFlags) override;
 
    public:
     static HRESULT CreateInstance(REFIID riid, void** ppv);

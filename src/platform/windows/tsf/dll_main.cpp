@@ -9,6 +9,8 @@
 #include "suborno/platform/windows/tsf/guids.hpp"
 #include "suborno/platform/windows/tsf/text_service.hpp"
 
+using namespace suborno::platform::windows;
+
 namespace {
 
 std::atomic<long> g_dllRefCount{0};
