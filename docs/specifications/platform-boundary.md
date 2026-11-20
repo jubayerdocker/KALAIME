@@ -10,8 +10,9 @@ are represented by `kalaime_layout_api`, `kalaime_dictionary`, and
 ## Windows-only code
 
 The Windows shared-library target is added only when `WIN32` is true and must
-use MSVC toolset v143. It may depend on WIL and Windows system APIs. No COM
-registration or TSF service implementation is currently in scope.
+use MSVC toolset v143. It may depend on WIL and Windows system APIs. The current
+target is a DLL/TSF build boundary and does not implement COM registration or
+a functioning TSF text service.
 
 ## Verification
 

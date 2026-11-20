@@ -2,10 +2,10 @@
 
 ## Current status
 
-The repository is a build scaffold, not an input method. The portable core
-contains only a tiny infrastructure ABI marker used by GoogleTest smoke tests.
-There is no Bangla phonetic engine, layout implementation, candidate model,
-dictionary algorithm, registration, or user-facing behavior.
+The repository contains a portable Bangla phonetic prototype, layout registry,
+composition sessions, settings persistence and SQLite dictionary/candidate
+integration. Native Windows COM/TSF registration and desktop typing are not yet
+implemented.
 
 ## Platform boundaries
 

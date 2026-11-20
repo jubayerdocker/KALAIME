@@ -8,6 +8,14 @@
 
 namespace kalaime::layouts {
 
+PhoneticInputSession::PhoneticInputSession() {
+    static const KalaPhoneticLayout default_layout;
+    layout_ = &default_layout;
+}
+
+PhoneticInputSession::PhoneticInputSession(const kalaime::layout::PhoneticLayout& layout)
+    : layout_(&layout) {}
+
 InputStatus PhoneticInputSession::append_utf8(std::string_view input) {
     if (!kalaime::unicode::is_valid_utf8(input)) {
         return InputStatus::invalid_utf8;
@@ -55,8 +63,10 @@ CommitResult PhoneticInputSession::commit() {
     }
 
     const auto parsed = kalaime::layouts::phonetic::detail::parse_primary(raw_input_, true);
+    const std::string committed =
+        parsed.literal_passthrough ? parsed.text : layout_->transliterate(raw_input_);
     raw_input_.clear();
-    return {parsed.text,
+    return {committed,
             parsed.literal_passthrough ? InputStatus::literal_passthrough : InputStatus::updated};
 }
 
@@ -65,8 +75,7 @@ CommitResult PhoneticInputSession::commit_candidate(std::size_t index) {
         return {{}, InputStatus::empty};
     }
 
-    const KalaPhoneticLayout layout;
-    const auto candidates = layout.generate_candidates(raw_input_);
+    const auto candidates = layout_->generate_candidates(raw_input_);
     if (index >= candidates.size()) {
         return {{}, InputStatus::candidate_out_of_range};
     }
@@ -89,7 +98,10 @@ CompositionSnapshot PhoneticInputSession::snapshot() const {
     }
 
     const auto parsed = kalaime::layouts::phonetic::detail::parse_primary(raw_input_, false);
-    result.preedit_utf8 = parsed.text;
+    result.preedit_utf8 =
+        parsed.pending
+            ? parsed.text
+            : (parsed.literal_passthrough ? parsed.text : layout_->transliterate(raw_input_));
     if (parsed.pending) {
         result.status = InputStatus::pending;
     } else if (parsed.literal_passthrough) {
@@ -98,8 +110,7 @@ CompositionSnapshot PhoneticInputSession::snapshot() const {
         result.status = InputStatus::updated;
     }
     if (!parsed.pending) {
-        const KalaPhoneticLayout layout;
-        result.candidates = layout.generate_candidates(raw_input_);
+        result.candidates = layout_->generate_candidates(raw_input_);
     }
     return result;
 }

@@ -2,25 +2,44 @@
 
 #include <sqlite3.h>
 
+#include <cstdlib>
 #include <filesystem>
 #include <stdexcept>
 #include <string>
+#include <system_error>
 #include <utility>
 #include <vector>
 
 namespace kalaime::dictionary {
+
+DictionaryError::DictionaryError(DictionaryErrorCategory category, int sqlite_code,
+                                 const std::string& message)
+    : std::runtime_error(message), category_(category), sqlite_code_(sqlite_code) {}
+
+DictionaryErrorCategory DictionaryError::category() const noexcept { return category_; }
+
+int DictionaryError::sqlite_code() const noexcept { return sqlite_code_; }
 
 struct Dictionary::Impl {
     sqlite3* db = nullptr;
 
     explicit Impl(const std::string& path) {
         const std::filesystem::path database_path = path;
+        std::error_code directory_error;
         if (!database_path.parent_path().empty()) {
-            std::filesystem::create_directories(database_path.parent_path());
+            std::filesystem::create_directories(database_path.parent_path(), directory_error);
+            if (directory_error) {
+                throw DictionaryError(DictionaryErrorCategory::open, SQLITE_CANTOPEN,
+                                      "Unable to create dictionary directory");
+            }
         }
 
         if (sqlite3_open(database_path.string().c_str(), &db) != SQLITE_OK) {
-            throw std::runtime_error("Unable to open KALAIME dictionary database");
+            const int code = db == nullptr ? SQLITE_CANTOPEN : sqlite3_extended_errcode(db);
+            const char* text = db == nullptr ? nullptr : sqlite3_errmsg(db);
+            throw DictionaryError(
+                DictionaryErrorCategory::open, code,
+                text == nullptr ? "Unable to open dictionary database" : std::string(text));
         }
     }
 
@@ -32,19 +51,26 @@ struct Dictionary::Impl {
     }
 };
 
-Dictionary::Dictionary(const std::string& database_path) : impl_(new Impl(database_path)) {
+Dictionary::Dictionary(const std::string& database_path)
+    : impl_(std::make_unique<Impl>(database_path)) {
     initialize_schema();
 }
 
-Dictionary::~Dictionary() { delete impl_; }
+Dictionary::~Dictionary() = default;
 
 void Dictionary::initialize_schema() {
     const char* sql =
+        "CREATE TABLE IF NOT EXISTS dictionary_metadata ("
+        "  key TEXT PRIMARY KEY,"
+        "  value TEXT NOT NULL);"
+        "INSERT OR IGNORE INTO dictionary_metadata(key, value) VALUES('schema_version', '1');"
         "CREATE TABLE IF NOT EXISTS dictionary_entries ("
         "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
         "  word TEXT NOT NULL UNIQUE,"
         "  normalized TEXT NOT NULL,"
         "  frequency INTEGER NOT NULL DEFAULT 1,"
+        "  source TEXT NOT NULL DEFAULT 'system',"
+        "  user_frequency INTEGER NOT NULL DEFAULT 0,"
         "  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);"
         "CREATE INDEX IF NOT EXISTS idx_dictionary_normalized ON dictionary_entries(normalized);";
 
@@ -53,39 +79,162 @@ void Dictionary::initialize_schema() {
     if (rc != SQLITE_OK) {
         std::string message = error == nullptr ? "unknown SQLite error" : error;
         sqlite3_free(error);
-        throw std::runtime_error("Unable to initialize dictionary schema: " + message);
+        throw DictionaryError(DictionaryErrorCategory::schema, rc,
+                              "Unable to initialize dictionary schema: " + message);
+    }
+
+    sqlite3_stmt* column_stmt = nullptr;
+    const int prepare_rc = sqlite3_prepare_v2(impl_->db, "PRAGMA table_info(dictionary_entries)",
+                                              -1, &column_stmt, nullptr);
+    if (prepare_rc != SQLITE_OK) {
+        throw DictionaryError(DictionaryErrorCategory::schema, prepare_rc,
+                              "Unable to inspect dictionary schema");
+    }
+
+    bool has_source = false;
+    bool has_user_frequency = false;
+    while (sqlite3_step(column_stmt) == SQLITE_ROW) {
+        const unsigned char* name = sqlite3_column_text(column_stmt, 1);
+        if (name != nullptr && std::string(reinterpret_cast<const char*>(name)) == "source") {
+            has_source = true;
+        }
+        if (name != nullptr &&
+            std::string(reinterpret_cast<const char*>(name)) == "user_frequency") {
+            has_user_frequency = true;
+        }
+    }
+    sqlite3_finalize(column_stmt);
+
+    if (!has_source) {
+        char* alter_error = nullptr;
+        const int alter_rc = sqlite3_exec(impl_->db,
+                                          "ALTER TABLE dictionary_entries "
+                                          "ADD COLUMN source TEXT NOT NULL DEFAULT 'system';",
+                                          nullptr, nullptr, &alter_error);
+        if (alter_rc != SQLITE_OK) {
+            std::string message = alter_error == nullptr ? "unknown SQLite error" : alter_error;
+            sqlite3_free(alter_error);
+            throw DictionaryError(DictionaryErrorCategory::schema, alter_rc,
+                                  "Unable to migrate dictionary schema: " + message);
+        }
+    }
+
+    if (!has_user_frequency) {
+        char* alter_error = nullptr;
+        const int alter_rc = sqlite3_exec(impl_->db,
+                                          "ALTER TABLE dictionary_entries "
+                                          "ADD COLUMN user_frequency INTEGER NOT NULL DEFAULT 0;",
+                                          nullptr, nullptr, &alter_error);
+        if (alter_rc != SQLITE_OK) {
+            std::string message = alter_error == nullptr ? "unknown SQLite error" : alter_error;
+            sqlite3_free(alter_error);
+            throw DictionaryError(DictionaryErrorCategory::schema, alter_rc,
+                                  "Unable to migrate dictionary schema: " + message);
+        }
     }
 }
 
 void Dictionary::add_entry(const std::string& word, const std::string& normalized, int frequency) {
     const std::string statement =
-        "INSERT OR REPLACE INTO dictionary_entries(word, normalized, frequency) VALUES(?, ?, ?)";
+        "INSERT INTO dictionary_entries(word, normalized, frequency, source) "
+        "VALUES(?, ?, ?, 'system') "
+        "ON CONFLICT(word) DO UPDATE SET normalized=excluded.normalized,"
+        " frequency=excluded.frequency, source='system'";
     sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(impl_->db, statement.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
-        throw std::runtime_error("Unable to prepare dictionary insert statement");
+    const int prepare_rc = sqlite3_prepare_v2(impl_->db, statement.c_str(), -1, &stmt, nullptr);
+    if (prepare_rc != SQLITE_OK) {
+        throw DictionaryError(DictionaryErrorCategory::prepare, prepare_rc,
+                              sqlite3_errmsg(impl_->db));
     }
 
-    sqlite3_bind_text(stmt, 1, word.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 2, normalized.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_int(stmt, 3, frequency);
+    if (sqlite3_bind_text(stmt, 1, word.c_str(), -1, SQLITE_TRANSIENT) != SQLITE_OK ||
+        sqlite3_bind_text(stmt, 2, normalized.c_str(), -1, SQLITE_TRANSIENT) != SQLITE_OK ||
+        sqlite3_bind_int(stmt, 3, frequency) != SQLITE_OK) {
+        sqlite3_finalize(stmt);
+        throw DictionaryError(DictionaryErrorCategory::bind, sqlite3_extended_errcode(impl_->db),
+                              "Unable to bind dictionary insert");
+    }
 
     const int rc = sqlite3_step(stmt);
     sqlite3_finalize(stmt);
     if (rc != SQLITE_DONE) {
-        throw std::runtime_error("Dictionary insert failed");
+        throw DictionaryError(DictionaryErrorCategory::step, rc, sqlite3_errmsg(impl_->db));
     }
+}
+
+void Dictionary::record_commit(const std::string& word, const std::string& normalized) {
+    const char* compatible_statement =
+        "INSERT INTO dictionary_entries(word, normalized, frequency, source) "
+        "VALUES(?, ?, 1, 'system') "
+        "ON CONFLICT(word) DO UPDATE SET "
+        "user_frequency=dictionary_entries.user_frequency+1,"
+        "normalized=excluded.normalized";
+    sqlite3_stmt* stmt = nullptr;
+    const int prepare_rc = sqlite3_prepare_v2(impl_->db, compatible_statement, -1, &stmt, nullptr);
+    if (prepare_rc != SQLITE_OK) {
+        throw DictionaryError(DictionaryErrorCategory::prepare, prepare_rc,
+                              sqlite3_errmsg(impl_->db));
+    }
+    if (sqlite3_bind_text(stmt, 1, word.c_str(), -1, SQLITE_TRANSIENT) != SQLITE_OK ||
+        sqlite3_bind_text(stmt, 2, normalized.c_str(), -1, SQLITE_TRANSIENT) != SQLITE_OK) {
+        sqlite3_finalize(stmt);
+        throw DictionaryError(DictionaryErrorCategory::bind, sqlite3_extended_errcode(impl_->db),
+                              "Unable to bind committed dictionary entry");
+    }
+    const int rc = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+    if (rc != SQLITE_DONE) {
+        throw DictionaryError(DictionaryErrorCategory::step, rc, sqlite3_errmsg(impl_->db));
+    }
+}
+
+void Dictionary::clear_user_entries() {
+    char* error = nullptr;
+    const int rc = sqlite3_exec(impl_->db, "UPDATE dictionary_entries SET user_frequency=0;",
+                                nullptr, nullptr, &error);
+    if (rc != SQLITE_OK) {
+        std::string message = error == nullptr ? "unknown SQLite error" : error;
+        sqlite3_free(error);
+        throw DictionaryError(DictionaryErrorCategory::step, rc, message);
+    }
+}
+
+int Dictionary::schema_version() const {
+    sqlite3_stmt* stmt = nullptr;
+    const int prepare_rc = sqlite3_prepare_v2(
+        impl_->db, "SELECT value FROM dictionary_metadata WHERE key='schema_version'", -1, &stmt,
+        nullptr);
+    if (prepare_rc != SQLITE_OK) {
+        throw DictionaryError(DictionaryErrorCategory::prepare, prepare_rc,
+                              sqlite3_errmsg(impl_->db));
+    }
+    int version = 0;
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        const unsigned char* value = sqlite3_column_text(stmt, 0);
+        if (value != nullptr) {
+            version = std::atoi(reinterpret_cast<const char*>(value));
+        }
+    }
+    sqlite3_finalize(stmt);
+    return version;
 }
 
 std::vector<std::string> Dictionary::find_matches(const std::string& normalized) const {
     const std::string query =
-        "SELECT word FROM dictionary_entries WHERE normalized = ? ORDER BY frequency DESC, word "
-        "ASC";
+        "SELECT word FROM dictionary_entries WHERE normalized = ? "
+        "ORDER BY (frequency + COALESCE(user_frequency, 0)) DESC, word ASC";
     sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(impl_->db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
-        return {};
+    const int prepare_rc = sqlite3_prepare_v2(impl_->db, query.c_str(), -1, &stmt, nullptr);
+    if (prepare_rc != SQLITE_OK) {
+        throw DictionaryError(DictionaryErrorCategory::prepare, prepare_rc,
+                              sqlite3_errmsg(impl_->db));
     }
 
-    sqlite3_bind_text(stmt, 1, normalized.c_str(), -1, SQLITE_TRANSIENT);
+    if (sqlite3_bind_text(stmt, 1, normalized.c_str(), -1, SQLITE_TRANSIENT) != SQLITE_OK) {
+        sqlite3_finalize(stmt);
+        throw DictionaryError(DictionaryErrorCategory::bind, sqlite3_extended_errcode(impl_->db),
+                              "Unable to bind dictionary lookup");
+    }
     std::vector<std::string> results;
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         const unsigned char* value = sqlite3_column_text(stmt, 0);
@@ -99,15 +248,21 @@ std::vector<std::string> Dictionary::find_matches(const std::string& normalized)
 
 std::vector<std::string> Dictionary::words_for_prefix(const std::string& prefix) const {
     const std::string query =
-        "SELECT word FROM dictionary_entries WHERE word LIKE ? ORDER BY frequency DESC, word ASC "
-        "LIMIT 10";
+        "SELECT word FROM dictionary_entries WHERE word LIKE ? "
+        "ORDER BY (frequency + COALESCE(user_frequency, 0)) DESC, word ASC LIMIT 10";
     sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(impl_->db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
-        return {};
+    const int prepare_rc = sqlite3_prepare_v2(impl_->db, query.c_str(), -1, &stmt, nullptr);
+    if (prepare_rc != SQLITE_OK) {
+        throw DictionaryError(DictionaryErrorCategory::prepare, prepare_rc,
+                              sqlite3_errmsg(impl_->db));
     }
 
     const std::string pattern = prefix + "%";
-    sqlite3_bind_text(stmt, 1, pattern.c_str(), -1, SQLITE_TRANSIENT);
+    if (sqlite3_bind_text(stmt, 1, pattern.c_str(), -1, SQLITE_TRANSIENT) != SQLITE_OK) {
+        sqlite3_finalize(stmt);
+        throw DictionaryError(DictionaryErrorCategory::bind, sqlite3_extended_errcode(impl_->db),
+                              "Unable to bind dictionary prefix lookup");
+    }
 
     std::vector<std::string> results;
     while (sqlite3_step(stmt) == SQLITE_ROW) {

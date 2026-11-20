@@ -35,6 +35,9 @@ class PhoneticInputSession final {
    public:
     static constexpr std::size_t kMaxInputCodePoints = 256;
 
+    PhoneticInputSession();
+    explicit PhoneticInputSession(const kalaime::layout::PhoneticLayout& layout);
+
     // Each session owns mutable composition state and is thread-confined.
     InputStatus append_utf8(std::string_view input);
     InputStatus backspace();
@@ -44,6 +47,7 @@ class PhoneticInputSession final {
     CompositionSnapshot snapshot() const;
 
    private:
+    const kalaime::layout::PhoneticLayout* layout_ = nullptr;
     std::string raw_input_;
 };
 

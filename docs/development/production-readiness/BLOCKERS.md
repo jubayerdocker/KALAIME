@@ -2,12 +2,11 @@
 
 ## Active blockers
 
-1. `VCPKG_ROOT` is missing; the existing Ubuntu verification script cannot configure.
-2. Hosted environment has no Windows SDK/MSVC runtime; real TSf/COM verification is unavailable.
-3. Core Engine orchestration and layout registry are not implemented.
-4. SQLite candidate/dictionary integration is incomplete.
-5. Interactive Windows application compatibility is untested.
-6. Performance numerical targets are not yet measured.
+1. Hosted environment has no Windows SDK/MSVC runtime; real TSF/COM verification is unavailable.
+2. GCC16 portability CI is not installed or executed.
+3. Interactive Windows application compatibility is untested.
+4. Windows COM/TSF implementation is not implemented.
+5. Installer, signing and clean-machine verification are not implemented.
 
 ## Recovery
 

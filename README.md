@@ -3,9 +3,11 @@
 **KALA** is the brand; **KALA Input** is the product; **KALAIME** is the
 technical project.
 
-KALAIME is being prepared as a native Bangla input method. This repository
-currently contains development infrastructure and compilation smoke targets,
-not a working input method.
+KALAIME is a portable C++20 Bangla phonetic engine under active development,
+with a native Windows TSF/COM adapter planned. The repository now contains
+a working phonetic parser, layout registry, independent composition sessions,
+SQLite-backed dictionary, candidate ranking, settings persistence and build
+infrastructure. Native Windows typing and COM/TSF registration are not complete.
 
 ## Scope and platform
 
@@ -17,8 +19,8 @@ not a working input method.
 - The source and target boundaries keep the portable core separate from the
   Windows adapter. Linux, macOS, and Android input method adapters are not
   implemented or claimed as supported.
-- There is no Bangla phonetic engine, keyboard layout, candidate selection,
-  dictionary behavior, TSF registration, or usable IME in this scaffold.
+- The current Windows target is a DLL build boundary, not a registered or
+  functioning TSF text service.
 
 See [the architecture overview](docs/architecture/overview.md) and
 [development setup](docs/development/ubuntu.md) for details.
