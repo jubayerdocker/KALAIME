@@ -43,6 +43,12 @@ class Dictionary {
     std::vector<std::string> words_for_prefix(const std::string& prefix) const;
     void initialize_schema();
 
+    // Personal dictionary management
+    void add_user_word(const std::string& word, const std::string& normalized);
+    void remove_user_word(const std::string& word);
+    std::vector<std::string> list_user_words() const;
+    int get_user_frequency(const std::string& word) const;
+
    private:
     struct Impl;
     std::unique_ptr<Impl> impl_;

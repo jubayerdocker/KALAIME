@@ -39,7 +39,7 @@ git -C "$VCPKG_UPDATE_ROOT" checkout --detach FETCH_HEAD
 "$VCPKG_UPDATE_ROOT/vcpkg" x-update-baseline
 ```
 
-Run the `x-update-baseline` commands from the SUBORNO-IME repository root.
+Run the `x-update-baseline` commands from the subornoime repository root.
 The vcpkg-documented `x-update-baseline` command updates the manifest's
 configured registry baselines; it is experimental. Review the changed
 `builtin-baseline` and all resolved package versions, licenses, and platform

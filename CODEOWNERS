@@ -1,0 +1,77 @@
+# CODEOWNERS for Suborno IME
+# This file defines who is responsible for different areas of the project.
+
+# Global owners
+* @dorkarnaitaka-bot
+
+# Core engine
+/src/core/ @dorkarnaitaka-bot
+/include/suborno/core/ @dorkarnaitaka-bot
+
+# Layout modules
+/src/layouts/ @dorkarnaitaka-bot
+/include/suborno/layouts/ @dorkarnaitaka-bot
+
+# Dictionary and candidates
+/src/dictionary/ @dorkarnaitaka-bot
+/src/candidates/ @dorkarnaitaka-bot
+/include/suborno/dictionary/ @dorkarnaitaka-bot
+/include/suborno/candidates/ @dorkarnaitaka-bot
+
+# Spell checker
+/src/spell/ @dorkarnaitaka-bot
+/include/suborno/spell/ @dorkarnaitaka-bot
+
+# Settings
+/src/settings/ @dorkarnaitaka-bot
+/include/suborno/settings/ @dorkarnaitaka-bot
+
+# Unicode
+/src/unicode/ @dorkarnaitaka-bot
+/include/suborno/unicode/ @dorkarnaitaka-bot
+
+# Windows TSF/COM
+/src/platform/windows/tsf/ @dorkarnaitaka-bot
+/include/suborno/platform/windows/tsf/ @dorkarnaitaka-bot
+
+# Windows UI
+/src/platform/windows/ui/ @dorkarnaitaka-bot
+/include/suborno/platform/windows/ui/ @dorkarnaitaka-bot
+
+# Linux adapter
+/src/platform/linux/ @dorkarnaitaka-bot
+/include/suborno/platform/linux/ @dorkarnaitaka-bot
+
+# macOS adapter
+/src/platform/macos/ @dorkarnaitaka-bot
+/include/suborno/platform/macos/ @dorkarnaitaka-bot
+
+# Build system
+/CMakeLists.txt @dorkarnaitaka-bot
+/CMakePresets.json @dorkarnaitaka-bot
+/vcpkg.json @dorkarnaitaka-bot
+/scripts/ @dorkarnaitaka-bot
+
+# CI/CD
+/.github/workflows/ @dorkarnaitaka-bot
+/.github/dependabot.yml @dorkarnaitaka-bot
+/.github/agents/ @dorkarnaitaka-bot
+/.github/copilot-instructions.md @dorkarnaitaka-bot
+/.github/instructions/ @dorkarnaitaka-bot
+
+# Documentation
+/docs/ @dorkarnaitaka-bot
+/README.md @dorkarnaitaka-bot
+/CONTRIBUTING.md @dorkarnaitaka-bot
+/CODE_OF_CONDUCT.md @dorkarnaitaka-bot
+/SECURITY.md @dorkarnaitaka-bot
+
+# Installer
+/installer/ @dorkarnaitaka-bot
+
+# Tests
+/tests/ @dorkarnaitaka-bot
+/benchmarks/ @dorkarnaitaka-bot
+
+# License
+/LICENSE @dorkarnaitaka-bot

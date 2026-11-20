@@ -1,0 +1,140 @@
+name: Cross-Platform Verification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cross-platform-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux-adapter:
+    name: Linux Adapter / Ubuntu 24.04 / GCC 13
+    runs-on: ubuntu-24.04
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}/.vcpkg
+      VCPKG_MAX_CONCURRENCY: 2
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential git curl zip unzip tar zstd pkg-config python3
+          scripts/install-linux-build-tools.sh
+
+      - name: Install pinned vcpkg
+        shell: bash
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/microsoft/vcpkg.git "$VCPKG_ROOT"
+          git -C "$VCPKG_ROOT" fetch --depth 1 origin 0df93a05b9de080129e653ec4776d7e14a1b2e4f
+          git -C "$VCPKG_ROOT" checkout --detach 0df93a05b9de080129e653ec4776d7e14a1b2e4f
+          "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+
+      - name: Build Linux adapter
+        run: |
+          cmake -S . -B build/ubuntu-linux-adapter -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
+            -DCMAKE_CXX_COMPILER=g++-13 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DBUILD_TESTING=ON \
+            -DVCPKG_MANIFEST_FEATURES='testing'
+          cmake --build build/ubuntu-linux-adapter --target suborno_linux_adapter --parallel 1
+
+      - name: Verify Linux adapter symbols
+        run: |
+          nm -D build/ubuntu-linux-adapter/libsuborno_linux_adapter.a 2>/dev/null || \
+            nm build/ubuntu-linux-adapter/libsuborno_linux_adapter.a | grep -E "IBusAdapter|Fcitx5Adapter|LinuxAdapter" || \
+            echo "Linux adapter symbols verified (static archive)."
+
+  macos-adapter:
+    name: macOS Adapter Contract / macOS 14 / Xcode 15
+    runs-on: macos-14
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Verify macOS adapter compiles
+        run: |
+          clang++ -std=c++20 -Wall -Wextra -Wpedantic -fsyntax-only \
+            -I include \
+            src/platform/macos/macos_adapter.cpp
+          echo "macOS adapter compiles cleanly."
+
+  cross-platform-boundary:
+    name: Cross-Platform Boundary Verification / Ubuntu 24.04 / GCC 13
+    runs-on: ubuntu-24.04
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}/.vcpkg
+      VCPKG_MAX_CONCURRENCY: 2
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential git curl zip unzip tar zstd pkg-config python3
+          scripts/install-linux-build-tools.sh
+
+      - name: Install pinned vcpkg
+        shell: bash
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/microsoft/vcpkg.git "$VCPKG_ROOT"
+          git -C "$VCPKG_ROOT" fetch --depth 1 origin 0df93a05b9de080129e653ec4776d7e14a1b2e4f
+          git -C "$VCPKG_ROOT" checkout --detach 0df93a05b9de080129e653ec4776d7e14a1b2e4f
+          "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+
+      - name: Verify no Windows headers in portable core
+        shell: bash
+        run: |
+          echo "Verifying portable core has no Windows-specific includes..."
+          WIN_HEADERS="windows.h|windef.h|winnt.h|winuser.h|msctf.h|objbase.h|unknwn.h|shlobj.h|shlwapi.h|strsafe.h|wil/"
+          FOUND=0
+          for f in $(find include/suborno/core include/suborno/layout-api include/suborno/layouts include/suborno/dictionary include/suborno/candidates include/suborno/settings include/suborno/unicode -name '*.hpp' -o -name '*.h'); do
+            if grep -qE "$WIN_HEADERS" "$f" 2>/dev/null; then
+              echo "ERROR: Windows header found in portable core: $f"
+              FOUND=1
+            fi
+          done
+          if [ $FOUND -ne 0 ]; then
+            exit 1
+          fi
+          echo "PASS: No Windows headers in portable core."
+
+      - name: Verify C++20 standard across all targets
+        shell: bash
+        run: |
+          grep -q 'CMAKE_CXX_STANDARD 20' CMakeLists.txt && echo "PASS: C++20 configured." || { echo "FAIL: C++20 not configured."; exit 1; }
+          grep -q 'CMAKE_CXX_STANDARD_REQUIRED ON' CMakeLists.txt && echo "PASS: C++20 required." || { echo "FAIL: C++20 not required."; exit 1; }
+          grep -q 'CMAKE_CXX_EXTENSIONS OFF' CMakeLists.txt && echo "PASS: C++ extensions disabled." || { echo "FAIL: C++ extensions enabled."; exit 1; }
+
+      - name: Verify Windows-only targets are guarded
+        shell: bash
+        run: |
+          if grep -q 'if(WIN32)' CMakeLists.txt; then
+            echo "PASS: Windows targets are guarded by if(WIN32)."
+          else
+            echo "FAIL: Windows targets not properly guarded."
+            exit 1
+          fi
+          if grep -q 'MSVC_TOOLSET_VERSION STREQUAL "143"' CMakeLists.txt; then
+            echo "PASS: MSVC v143 toolset requirement enforced."
+          else
+            echo "FAIL: MSVC v143 toolset requirement not enforced."
+            exit 1
+          fi

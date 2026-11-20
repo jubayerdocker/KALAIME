@@ -10,8 +10,7 @@ namespace suborno::layouts {
 class SubornoPhoneticLayout final : public layout::PhoneticLayout {
    public:
     std::string transliterate(const std::string& input) const override;
-    std::vector<layout::Candidate> generate_candidates(
-        const std::string& input) const override;
+    std::vector<layout::Candidate> generate_candidates(const std::string& input) const override;
 };
 
 }  // namespace suborno::layouts

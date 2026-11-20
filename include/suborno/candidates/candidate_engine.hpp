@@ -14,8 +14,7 @@ namespace suborno::candidates {
 class CandidateEngine {
    public:
     explicit CandidateEngine(const layout::PhoneticLayout& layout);
-    CandidateEngine(const layout::PhoneticLayout& layout,
-                    const dictionary::Dictionary& dictionary);
+    CandidateEngine(const layout::PhoneticLayout& layout, const dictionary::Dictionary& dictionary);
 
     std::vector<layout::Candidate> make_candidates(const std::string& input) const;
 

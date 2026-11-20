@@ -36,8 +36,8 @@ std::vector<suborno::layout::Candidate> make_session_candidates(
     return candidates;
 }
 }  // namespace
-#include "suborno/unicode/bengali.hpp"
 #include "phonetic_parser.hpp"
+#include "suborno/unicode/bengali.hpp"
 
 namespace suborno::layouts {
 

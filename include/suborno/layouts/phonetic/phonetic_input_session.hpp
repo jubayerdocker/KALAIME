@@ -42,8 +42,7 @@ class PhoneticInputSession final {
 
     PhoneticInputSession();
     explicit PhoneticInputSession(const layout::PhoneticLayout& layout);
-    PhoneticInputSession(const layout::PhoneticLayout& layout,
-                         dictionary::Dictionary& dictionary);
+    PhoneticInputSession(const layout::PhoneticLayout& layout, dictionary::Dictionary& dictionary);
 
     // Each session owns mutable composition state and is thread-confined.
     InputStatus append_utf8(std::string_view input);

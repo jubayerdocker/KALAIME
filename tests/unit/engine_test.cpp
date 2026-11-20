@@ -10,11 +10,11 @@
 #include "suborno/candidates/candidate_engine.hpp"
 #include "suborno/candidates/language_intelligence.hpp"
 #include "suborno/dictionary/dictionary.hpp"
-#include "suborno/suborno.h"
 #include "suborno/layout-api/declarative_layout.hpp"
 #include "suborno/layout-api/phonetic_layout.hpp"
 #include "suborno/layouts/phonetic/suborno_phonetic_layout.hpp"
 #include "suborno/settings/settings.hpp"
+#include "suborno/suborno.h"
 
 namespace {
 
@@ -39,7 +39,7 @@ TEST(EngineTest, RegistersDefaultPhoneticLayout) {
     EXPECT_EQ(engine.active_layout_id(), "suborno-phonetic");
     const auto* metadata = engine.layout_metadata("suborno-phonetic");
     ASSERT_NE(metadata, nullptr);
-    EXPECT_EQ(metadata->display_name, "SUBORNO Phonetic");
+    EXPECT_EQ(metadata->display_name, "Suborno Phonetic");
 
     auto session = engine.create_session();
     ASSERT_NE(session, nullptr);

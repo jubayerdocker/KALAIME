@@ -19,7 +19,7 @@ existing repository. They are research findings, not source changes.
 
 ### Modern C++ and ownership
 
-The `modern-cpp` workflow identified [dictionary.hpp](/workspaces/codespaces-blank/KALAIME/include/suborno/dictionary/dictionary.hpp)
+The `modern-cpp` workflow identified [dictionary.hpp](include/suborno/dictionary/dictionary.hpp)
 as a PIMPL ownership point. The public type owns `Impl*` but does not yet
 explicitly delete copy operations or document move semantics. This is a
 potential copy-safety risk, not a demonstrated runtime double-delete. The

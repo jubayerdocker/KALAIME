@@ -1,0 +1,140 @@
+name: Dependency Audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * 1'  # Weekly on Mondays at 02:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sbom-grype:
+    name: SPDX SBOM + Grype / Ubuntu 26.04
+    runs-on: ubuntu-26.04
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}/.vcpkg
+      VCPKG_MAX_CONCURRENCY: 2
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Install build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential git curl zip unzip tar zstd pkg-config python3
+          scripts/install-linux-build-tools.sh
+
+      - name: Install SBOM and vulnerability tools
+        shell: bash
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -sSfL https://get.anchore.io/syft | sh -s -- -b "$HOME/.local/bin"
+          curl -sSfL https://get.anchore.io/grype | sh -s -- -b "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned vcpkg
+        shell: bash
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/microsoft/vcpkg.git "$VCPKG_ROOT"
+          git -C "$VCPKG_ROOT" fetch --depth 1 origin 0df93a05b9de080129e653ec4776d7e14a1b2e4f
+          git -C "$VCPKG_ROOT" checkout --detach 0df93a05b9de080129e653ec4776d7e14a1b2e4f
+          "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+
+      - name: Resolve manifest dependencies
+        run: cmake --preset ubuntu-ci
+
+      - name: Generate SPDX SBOM and scan with Grype
+        run: scripts/security-scan-ubuntu.sh build/ubuntu-ci
+
+      - name: Fail on critical/high vulnerabilities
+        shell: bash
+        run: |
+          if grep -qE 'Severity: (Critical|High)' build/ubuntu-ci/grype-report.txt; then
+            echo "::error::Critical or High severity vulnerabilities found in dependencies."
+            exit 1
+          fi
+
+      - name: Upload SBOM and scan report
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: dependency-sbom-and-grype-report
+          path: |
+            build/ubuntu-ci/spdx/*.spdx.json
+            build/ubuntu-ci/grype-report.txt
+          if-no-files-found: warn
+          retention-days: 30
+
+  vcpkg-baseline:
+    name: vcpkg Baseline Verification / Ubuntu 24.04
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Verify vcpkg baseline commit
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          manifest = json.loads(Path("vcpkg.json").read_text(encoding="utf-8"))
+          baseline = manifest.get("builtin-baseline", "")
+          if not baseline:
+              print("ERROR: No builtin-baseline in vcpkg.json")
+              exit(1)
+          print(f"vcpkg baseline: {baseline}")
+          # Verify it's a 40-character SHA-1
+          import re
+          if not re.match(r'^[0-9a-f]{40}$', baseline):
+              print(f"ERROR: builtin-baseline is not a valid SHA-1: {baseline}")
+              exit(1)
+          print("vcpkg baseline is valid SHA-1.")
+          PY
+
+      - name: Verify dependency declarations
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          manifest = json.loads(Path("vcpkg.json").read_text(encoding="utf-8"))
+          deps = manifest.get("dependencies", [])
+          print(f"Declared dependencies: {len(deps)}")
+          for dep in deps:
+              name = dep.get("name", "unknown")
+              ver = dep.get("version>=", "unspecified")
+              platform = dep.get("platform", "all")
+              print(f"  {name} >= {ver} [{platform}]")
+          # Verify required dependencies are present
+          required = {"icu", "sqlite3"}
+          declared = {d["name"] for d in deps}
+          missing = required - declared
+          if missing:
+              print(f"ERROR: Missing required dependencies: {missing}")
+              exit(1)
+          print("All required dependencies declared.")
+          PY
+
+      - name: Upload dependency audit results
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: dependency-audit-results
+          path: |
+            build/ubuntu-ci/spdx/*.spdx.json
+            build/ubuntu-ci/grype-report.txt
+          if-no-files-found: ignore
+          retention-days: 30

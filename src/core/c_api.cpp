@@ -2,8 +2,8 @@
 #include <cstring>
 
 #include "suborno/core/engine.hpp"
-#include "suborno/suborno.h"
 #include "suborno/layouts/phonetic/phonetic_input_session.hpp"
+#include "suborno/suborno.h"
 
 struct SUBORNO_Engine {
     suborno::core::Engine engine;

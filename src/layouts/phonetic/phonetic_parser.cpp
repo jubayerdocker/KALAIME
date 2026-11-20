@@ -11,8 +11,8 @@
 #include <unordered_set>
 #include <utility>
 
-#include "suborno/unicode/bengali.hpp"
 #include "phonetic_tokenizer.hpp"
+#include "suborno/unicode/bengali.hpp"
 
 namespace suborno::layouts::phonetic::detail {
 namespace {

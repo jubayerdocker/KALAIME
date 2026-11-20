@@ -1,0 +1,97 @@
+name: Windows TSF/COM Integration
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tsf-com-verification:
+    name: TSF/COM Integration / Windows 2022 / x64
+    runs-on: windows-2022
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}\.vcpkg
+      VCPKG_MAX_CONCURRENCY: 2
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Verify Visual Studio, MSVC v143, and Windows SDK
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          if (-not (Test-Path $vswhere)) { throw "vswhere.exe not found; Visual Studio 2022 is required." }
+          $vs = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (-not $vs) { throw "Visual Studio C++ x64 tools are not installed." }
+          $toolsets = Get-ChildItem "$vs\VC\Tools\MSVC" -Directory |
+            Where-Object { $_.Name -match '^14\.[3-9]\d+\.' }
+          if (-not $toolsets) { throw "MSVC v143 toolset not found." }
+          $sdkRoot = "${env:ProgramFiles(x86)}\Windows Kits\10\Include"
+          if (-not (Test-Path $sdkRoot)) { throw "Windows 10/11 SDK headers are not installed." }
+
+      - name: Install pinned vcpkg
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git clone --filter=blob:none --no-checkout https://github.com/microsoft/vcpkg.git "$env:VCPKG_ROOT"
+          git -C "$env:VCPKG_ROOT" fetch --depth 1 origin 0df93a05b9de080129e653ec4776d7e14a1b2e4f
+          git -C "$env:VCPKG_ROOT" checkout --detach 0df93a05b9de080129e653ec4776d7e14a1b2e4f
+          & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
+          if ($LASTEXITCODE -ne 0) { throw "vcpkg bootstrap failed." }
+
+      - name: Configure Windows TSF target
+        run: cmake --preset windows-msvc
+
+      - name: Build Windows TSF DLL
+        shell: pwsh
+        run: |
+          cmake --build --preset windows-msvc-release --target suborno_windows_tsf --parallel 1 --verbose -- /verbosity:diagnostic 2>&1 |
+            Tee-Object -FilePath build/windows-msvc/build-tsf.log
+          if ($LASTEXITCODE -ne 0) { throw "Windows TSF DLL build failed." }
+
+      - name: Verify DLL exports
+        shell: pwsh
+        run: |
+          $dll = Get-ChildItem build/windows-msvc/Release/suborno_windows_tsf.dll -ErrorAction Stop
+          Write-Host "DLL: $($dll.FullName)"
+          Write-Host "DLL size: $($dll.Length) bytes"
+          # Verify the DLL is a valid PE32+ executable
+          $bytes = [System.IO.File]::ReadAllBytes($dll.FullName)
+          if ($bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) {
+            throw "DLL does not have a valid MZ header."
+          }
+          Write-Host "DLL has valid PE header."
+
+      - name: Build Windows unit tests
+        shell: pwsh
+        run: |
+          cmake --build --preset windows-msvc-release --target suborno_unit_tests --parallel 1 --verbose -- /verbosity:diagnostic 2>&1 |
+            Tee-Object -FilePath build/windows-msvc/build-tests.log
+          if ($LASTEXITCODE -ne 0) { throw "Windows unit test build failed." }
+
+      - name: Run Windows unit tests
+        run: ctest --preset windows-msvc-release --output-junit build/windows-msvc/ctest-windows-tests.xml
+
+      - name: Upload TSF integration artifacts
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: windows-tsf-integration
+          path: |
+            build/windows-msvc/Release/suborno_windows_tsf.dll
+            build/windows-msvc/build-tsf.log
+            build/windows-msvc/build-tests.log
+            build/windows-msvc/ctest-windows-tests.xml
+          if-no-files-found: error
+          retention-days: 14

@@ -1,14 +1,20 @@
 #include "suborno/core/engine.hpp"
 
 #include "suborno/dictionary/dictionary.hpp"
+#include "suborno/layouts/national/national_layout.hpp"
 #include "suborno/layouts/phonetic/suborno_phonetic_layout.hpp"
+#include "suborno/layouts/probhat/probhat_layout.hpp"
 #include "suborno/settings/settings.hpp"
 
 namespace suborno::core {
 
 Engine::Engine() {
     layouts_.register_layout("suborno-phonetic", std::make_unique<layouts::SubornoPhoneticLayout>(),
-                             layout::LayoutMetadata{"suborno-phonetic", "SUBORNO Phonetic", "1"});
+                             layout::LayoutMetadata{"suborno-phonetic", "Suborno Phonetic", "1"});
+    layouts_.register_layout("probhat", std::make_unique<layouts::ProbhatLayout>(),
+                             layout::LayoutMetadata{"probhat", "Probhat", "1"});
+    layouts_.register_layout("national", std::make_unique<layouts::NationalLayout>(),
+                             layout::LayoutMetadata{"national", "National", "1"});
 }
 
 Engine::Engine(const EngineConfig& config) : Engine() {

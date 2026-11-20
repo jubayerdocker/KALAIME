@@ -1,0 +1,120 @@
+name: Sanitizers
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sanitizers-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  asan-ubsan:
+    name: ASan/UBSan / Ubuntu 24.04 / GCC 13
+    runs-on: ubuntu-24.04
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}/.vcpkg
+      VCPKG_MAX_CONCURRENCY: 2
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential git curl zip unzip tar zstd pkg-config python3
+          scripts/install-linux-build-tools.sh
+          g++-13 --version | head -1
+
+      - name: Install pinned vcpkg
+        shell: bash
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/microsoft/vcpkg.git "$VCPKG_ROOT"
+          git -C "$VCPKG_ROOT" fetch --depth 1 origin 0df93a05b9de080129e653ec4776d7e14a1b2e4f
+          git -C "$VCPKG_ROOT" checkout --detach 0df93a05b9de080129e653ec4776d7e14a1b2e4f
+          "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+
+      - name: Configure with sanitizers
+        run: |
+          cmake -S . -B build/ubuntu-sanitizers -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
+            -DCMAKE_CXX_COMPILER=g++-13 \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DSUBORNO_ENABLE_SANITIZERS=ON \
+            -DBUILD_TESTING=ON \
+            -DVCPKG_MANIFEST_FEATURES='testing'
+
+      - name: Build with sanitizers
+        run: cmake --build build/ubuntu-sanitizers --parallel 1
+
+      - name: Run CTest with sanitizers
+        run: ctest --test-dir build/ubuntu-sanitizers --output-on-failure
+
+      - name: Upload sanitizer results
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: sanitizer-results
+          path: build/ubuntu-sanitizers/Testing/Temporary/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  libfuzzer-clang:
+    name: libFuzzer / Ubuntu 26.04 / Clang 23
+    runs-on: ubuntu-26.04
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}/.vcpkg
+      VCPKG_MAX_CONCURRENCY: 2
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Install build and analysis tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential git curl zip unzip tar zstd pkg-config python3
+          scripts/install-llvm-23-ubuntu.sh
+          scripts/install-linux-build-tools.sh
+
+      - name: Install pinned vcpkg
+        shell: bash
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/microsoft/vcpkg.git "$VCPKG_ROOT"
+          git -C "$VCPKG_ROOT" fetch --depth 1 origin 0df93a05b9de080129e653ec4776d7e14a1b2e4f
+          git -C "$VCPKG_ROOT" checkout --detach 0df93a05b9de080129e653ec4776d7e14a1b2e4f
+          "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+
+      - name: Build fuzzing target
+        run: |
+          cmake -S . -B build/ubuntu-fuzz -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
+            -DCMAKE_CXX_COMPILER=clang++-23 \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DSUBORNO_BUILD_FUZZING=ON \
+            -DVCPKG_MANIFEST_FEATURES='testing'
+          cmake --build build/ubuntu-fuzz --target suborno_phonetic_fuzz --parallel 1
+
+      - name: Run libFuzzer (1000 iterations)
+        run: |
+          build/ubuntu-fuzz/suborno_phonetic_fuzz -runs=1000 -max_total_time=60
+
+      - name: Upload fuzzer results
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: fuzzer-results
+          path: build/ubuntu-fuzz/
+          if-no-files-found: ignore
+          retention-days: 7

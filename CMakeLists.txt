@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(SUBORNO-IME VERSION 0.1.0 LANGUAGES CXX)
+project(subornoime VERSION 0.1.0 LANGUAGES CXX)
 
 option(BUILD_TESTING "Build SUBORNO test executables" OFF)
 option(SUBORNO_BUILD_BENCHMARKS "Build optional Google Benchmark executables" OFF)
@@ -38,6 +38,24 @@ target_include_directories(suborno_phonetic PUBLIC "${PROJECT_SOURCE_DIR}/includ
 target_include_directories(suborno_phonetic PRIVATE "${PROJECT_SOURCE_DIR}/src")
 target_link_libraries(suborno_phonetic PUBLIC suborno_layout_api suborno_unicode)
 
+add_library(suborno_probhat STATIC
+    src/layouts/probhat/probhat_layout.cpp
+)
+target_include_directories(suborno_probhat PUBLIC "${PROJECT_SOURCE_DIR}/include")
+target_link_libraries(suborno_probhat PUBLIC suborno_layout_api suborno_unicode)
+
+add_library(suborno_national STATIC
+    src/layouts/national/national_layout.cpp
+)
+target_include_directories(suborno_national PUBLIC "${PROJECT_SOURCE_DIR}/include")
+target_link_libraries(suborno_national PUBLIC suborno_layout_api suborno_unicode)
+
+add_library(suborno_spell STATIC
+    src/spell/spell_checker.cpp
+)
+target_include_directories(suborno_spell PUBLIC "${PROJECT_SOURCE_DIR}/include")
+target_link_libraries(suborno_spell PUBLIC suborno_layout_api suborno_dictionary)
+
 add_library(suborno_candidates STATIC
     src/candidates/candidate_engine.cpp
     src/candidates/language_intelligence.cpp
@@ -71,6 +89,8 @@ target_link_libraries(suborno_core
         suborno_unicode
         suborno_layout_api
         suborno_phonetic
+        suborno_probhat
+        suborno_national
         suborno_candidates
         suborno_dictionary
         suborno_persistence
@@ -134,12 +154,18 @@ if(WIN32)
     endif()
 
     find_package(wil CONFIG REQUIRED)
+
     add_library(suborno_windows_tsf SHARED
         src/platform/windows/tsf/module_smoke.cpp
+        src/platform/windows/tsf/guids.cpp
+        src/platform/windows/tsf/text_service.cpp
+        src/platform/windows/tsf/class_factory.cpp
+        src/platform/windows/tsf/dll_main.cpp
+        src/platform/windows/ui/settings.cpp
     )
     target_include_directories(suborno_windows_tsf PUBLIC "${PROJECT_SOURCE_DIR}/include")
     target_compile_definitions(suborno_windows_tsf PRIVATE SUBORNO_WINDOWS_TSF_EXPORTS)
-    target_link_libraries(suborno_windows_tsf PRIVATE WIL::WIL)
+    target_link_libraries(suborno_windows_tsf PRIVATE WIL::WIL Ole32.lib Uuid.lib Shlwapi.lib)
     suborno_configure_target(suborno_windows_tsf)
 endif()
 
@@ -158,9 +184,13 @@ if(BUILD_TESTING)
         tests/unit/settings_test.cpp
         tests/unit/linguistic_regression_test.cpp
         tests/unit/platform_adapter_test.cpp
+        tests/unit/probhat_layout_test.cpp
+        tests/unit/national_layout_test.cpp
+        tests/unit/spell_checker_test.cpp
+        tests/unit/personal_dictionary_test.cpp
     )
     target_include_directories(suborno_unit_tests PRIVATE "${PROJECT_SOURCE_DIR}/src")
-    target_link_libraries(suborno_unit_tests PRIVATE suborno_core GTest::gtest_main)
+    target_link_libraries(suborno_unit_tests PRIVATE suborno_core GTest::gtest_main suborno_spell)
     if(UNIX AND NOT APPLE)
         target_link_libraries(suborno_unit_tests PRIVATE suborno_linux_adapter)
     endif()

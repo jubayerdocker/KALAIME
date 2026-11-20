@@ -1,10 +1,10 @@
-# SUBORNO Repository Instructions
+# Suborno Repository Instructions
 
 ## Project Identity
 
-- Brand: SUBORNO
-- Product: SUBORNO Input
-- Technical project: SUBORNO-IME
+- Brand: Suborno
+- Product: Suborno IME
+- Technical project: subornoime
 - Shared C++20 engine with independent layout modules and platform adapters
 - First production platform: Windows 10 x64
 - Desktop UI is outside scope

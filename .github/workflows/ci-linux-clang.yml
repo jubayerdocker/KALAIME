@@ -1,0 +1,70 @@
+name: CI Linux Clang
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-linux-clang-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  clang-build-test:
+    name: Clang 23 Build & Test / Ubuntu 26.04
+    runs-on: ubuntu-26.04
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}/.vcpkg
+      VCPKG_MAX_CONCURRENCY: 2
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Install build and analysis tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential git curl zip unzip tar zstd pkg-config python3
+          scripts/install-llvm-23-ubuntu.sh
+          scripts/install-linux-build-tools.sh
+          clang++-23 --version | head -1
+          cmake --version | head -1
+          ninja --version
+
+      - name: Install pinned vcpkg
+        shell: bash
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/microsoft/vcpkg.git "$VCPKG_ROOT"
+          git -C "$VCPKG_ROOT" fetch --depth 1 origin 0df93a05b9de080129e653ec4776d7e14a1b2e4f
+          git -C "$VCPKG_ROOT" checkout --detach 0df93a05b9de080129e653ec4776d7e14a1b2e4f
+          "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+
+      - name: Configure (Clang 23)
+        run: cmake --preset ubuntu-ci
+
+      - name: Build (Clang 23)
+        run: cmake --build --preset ubuntu-ci --parallel 1
+
+      - name: Check clang-format
+        run: scripts/check-format-ubuntu.sh
+
+      - name: Run clang-tidy
+        run: scripts/check-tidy-ubuntu.sh build/ubuntu-ci
+
+      - name: Run CUnit Tests (Clang 23)
+        run: ctest --preset ubuntu-ci --output-on-failure
+
+      - name: Upload Clang CTest report
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: ubuntu-clang-ctest
+          path: build/ubuntu-ci/Testing/Temporary/
+          if-no-files-found: ignore
+          retention-days: 7

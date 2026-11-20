@@ -1,9 +1,9 @@
-# SUBORNO Input (SUBORNO-IME)
+# Suborno IME (subornoime)
 
-**SUBORNO** is the brand; **SUBORNO Input** is the product; **SUBORNO-IME** is the
-technical project.
+**Suborno** is the brand; **Suborno IME** is the product; **subornoime** is the
+technical project identifier.
 
-SUBORNO-IME is a portable C++20 Bangla phonetic engine under active development,
+subornoime is a portable C++20 Bangla phonetic engine under active development,
 with a native Windows TSF/COM adapter planned. The repository now contains
 a working phonetic parser, layout registry, independent composition sessions,
 SQLite-backed dictionary, candidate ranking, settings persistence and build

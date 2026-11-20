@@ -279,4 +279,101 @@ std::vector<std::string> Dictionary::words_for_prefix(const std::string& prefix)
     return results;
 }
 
+void Dictionary::add_user_word(const std::string& word, const std::string& normalized) {
+    const std::string statement =
+        "INSERT INTO dictionary_entries(word, normalized, frequency, source, user_frequency) "
+        "VALUES(?, ?, 1, 'user', 1) "
+        "ON CONFLICT(word) DO UPDATE SET "
+        "user_frequency=dictionary_entries.user_frequency+1,"
+        "normalized=excluded.normalized";
+    sqlite3_stmt* stmt = nullptr;
+    const int prepare_rc = sqlite3_prepare_v2(impl_->db, statement.c_str(), -1, &stmt, nullptr);
+    if (prepare_rc != SQLITE_OK) {
+        throw DictionaryError(DictionaryErrorCategory::prepare, prepare_rc,
+                              sqlite3_errmsg(impl_->db));
+    }
+
+    if (sqlite3_bind_text(stmt, 1, word.c_str(), -1, SQLITE_TRANSIENT) != SQLITE_OK ||
+        sqlite3_bind_text(stmt, 2, normalized.c_str(), -1, SQLITE_TRANSIENT) != SQLITE_OK) {
+        sqlite3_finalize(stmt);
+        throw DictionaryError(DictionaryErrorCategory::bind, sqlite3_extended_errcode(impl_->db),
+                              "Unable to bind user word insert");
+    }
+
+    const int rc = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+    if (rc != SQLITE_DONE) {
+        throw DictionaryError(DictionaryErrorCategory::step, rc, sqlite3_errmsg(impl_->db));
+    }
+}
+
+void Dictionary::remove_user_word(const std::string& word) {
+    const std::string statement =
+        "DELETE FROM dictionary_entries WHERE word = ? AND source = 'user'";
+    sqlite3_stmt* stmt = nullptr;
+    const int prepare_rc = sqlite3_prepare_v2(impl_->db, statement.c_str(), -1, &stmt, nullptr);
+    if (prepare_rc != SQLITE_OK) {
+        throw DictionaryError(DictionaryErrorCategory::prepare, prepare_rc,
+                              sqlite3_errmsg(impl_->db));
+    }
+
+    if (sqlite3_bind_text(stmt, 1, word.c_str(), -1, SQLITE_TRANSIENT) != SQLITE_OK) {
+        sqlite3_finalize(stmt);
+        throw DictionaryError(DictionaryErrorCategory::bind, sqlite3_extended_errcode(impl_->db),
+                              "Unable to bind user word delete");
+    }
+
+    const int rc = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+    if (rc != SQLITE_DONE) {
+        throw DictionaryError(DictionaryErrorCategory::step, rc, sqlite3_errmsg(impl_->db));
+    }
+}
+
+std::vector<std::string> Dictionary::list_user_words() const {
+    const std::string query =
+        "SELECT word FROM dictionary_entries WHERE source = 'user' "
+        "ORDER BY user_frequency DESC, word ASC";
+    sqlite3_stmt* stmt = nullptr;
+    const int prepare_rc = sqlite3_prepare_v2(impl_->db, query.c_str(), -1, &stmt, nullptr);
+    if (prepare_rc != SQLITE_OK) {
+        throw DictionaryError(DictionaryErrorCategory::prepare, prepare_rc,
+                              sqlite3_errmsg(impl_->db));
+    }
+
+    std::vector<std::string> results;
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        const unsigned char* value = sqlite3_column_text(stmt, 0);
+        if (value != nullptr) {
+            results.emplace_back(reinterpret_cast<const char*>(value));
+        }
+    }
+    sqlite3_finalize(stmt);
+    return results;
+}
+
+int Dictionary::get_user_frequency(const std::string& word) const {
+    const std::string query =
+        "SELECT user_frequency FROM dictionary_entries WHERE word = ? AND source = 'user'";
+    sqlite3_stmt* stmt = nullptr;
+    const int prepare_rc = sqlite3_prepare_v2(impl_->db, query.c_str(), -1, &stmt, nullptr);
+    if (prepare_rc != SQLITE_OK) {
+        throw DictionaryError(DictionaryErrorCategory::prepare, prepare_rc,
+                              sqlite3_errmsg(impl_->db));
+    }
+
+    if (sqlite3_bind_text(stmt, 1, word.c_str(), -1, SQLITE_TRANSIENT) != SQLITE_OK) {
+        sqlite3_finalize(stmt);
+        throw DictionaryError(DictionaryErrorCategory::bind, sqlite3_extended_errcode(impl_->db),
+                              "Unable to bind user frequency query");
+    }
+
+    int frequency = 0;
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        frequency = sqlite3_column_int(stmt, 0);
+    }
+    sqlite3_finalize(stmt);
+    return frequency;
+}
+
 }  // namespace suborno::dictionary

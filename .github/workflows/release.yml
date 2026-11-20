@@ -1,0 +1,111 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release / Windows 2022 / x64
+    runs-on: windows-2022
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}\.vcpkg
+      VCPKG_MAX_CONCURRENCY: 2
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $innoSetupUrl = "https://github.com/jrsoftware/issrc/releases/download/6.2.2/is-6.2.2.exe"
+          $innoSetupInstaller = Join-Path $env:TEMP 'inno-setup.exe'
+          Invoke-WebRequest -Uri $innoSetupUrl -OutFile $innoSetupInstaller
+          $proc = Start-Process -FilePath $innoSetupInstaller -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-' -Wait -PassThru
+          if ($proc.ExitCode -ne 0) { throw "Inno Setup installation failed with exit code $($proc.ExitCode)." }
+          Write-Host "Inno Setup installed."
+
+      - name: Install pinned vcpkg
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git clone --filter=blob:none --no-checkout https://github.com/microsoft/vcpkg.git "$env:VCPKG_ROOT"
+          git -C "$env:VCPKG_ROOT" fetch --depth 1 origin 0df93a05b9de080129e653ec4776d7e14a1b2e4f
+          git -C "$env:VCPKG_ROOT" checkout --detach 0df93a05b9de080129e653ec4776d7e14a1b2e4f
+          & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
+          if ($LASTEXITCODE -ne 0) { throw "vcpkg bootstrap failed." }
+
+      - name: Build release (MSVC v143 x64)
+        run: cmake --preset windows-msvc
+        shell: pwsh
+        run: |
+          cmake --preset windows-msvc
+          cmake --build --preset windows-msvc-release --parallel 1 -- /verbosity:minimal
+          if ($LASTEXITCODE -ne 0) { throw "Release build failed." }
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe not found." }
+          & $iscc /Q installer/windows/suborno_installer.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed." }
+
+      - name: Get release version
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          if ($tag -match '^v(.+)$') { $version = $Matches[1] } else { $version = $tag }
+          echo "VERSION=$version" >> $env:GITHUB_ENV
+          Write-Host "Release version: $version"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Suborno IME ${{ env.VERSION }}
+          body: |
+            ## Suborno IME ${{ env.VERSION }}
+
+            Native Bengali Input Method Editor for Windows 10/11 x64.
+
+            ### Includes:
+            - Suborno TSF/COM Text Service DLL
+            - Suborno Phonetic, Probhat, and National keyboard layouts
+            - Bengali Unicode processing (ICU)
+            - SQLite dictionary with personal dictionary support
+            - Spell checker with edit-distance suggestions
+            - Native Windows settings UI
+
+            ### Installation:
+            Download and run the Suborno IME Installer (.exe) below.
+
+            ### Requirements:
+            - Windows 10 or Windows 11 (x64)
+            - No additional runtime dependencies required
+
+            ### Verification:
+            - Built with MSVC v143, Windows SDK, CMake, Visual Studio 17 2022
+            - C++20 shared core engine
+            - Static analysis enabled
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release artifacts
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            installer/windows/Output/*.exe
+            build/windows-msvc/Release/suborno_windows_tsf.dll
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

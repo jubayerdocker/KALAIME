@@ -1,0 +1,127 @@
+name: CI Windows MSVC
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-windows-msvc-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  msvc-build-test:
+    name: MSVC v143 Build & Test / Windows 2022 / x64
+    runs-on: windows-2022
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}\.vcpkg
+      VCPKG_MAX_CONCURRENCY: 2
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Verify Visual Studio, MSVC v143, and Windows SDK
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          if (-not (Test-Path $vswhere)) { throw "vswhere.exe not found; Visual Studio 2022 is required." }
+          $vs = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (-not $vs) { throw "Visual Studio C++ x64 tools are not installed." }
+          $toolsets = Get-ChildItem "$vs\VC\Tools\MSVC" -Directory |
+            Where-Object { $_.Name -match '^14\.[3-9]\d+\.' }
+          if (-not $toolsets) { throw "MSVC v143 toolset not found." }
+          $sdkRoot = "${env:ProgramFiles(x86)}\Windows Kits\10\Include"
+          if (-not (Test-Path $sdkRoot)) { throw "Windows 10/11 SDK headers are not installed." }
+          $sdkVersions = Get-ChildItem $sdkRoot -Directory | Where-Object { $_.Name -match '^\d+\.' }
+          if (-not $sdkVersions) { throw "No Windows SDK version was found." }
+          Write-Host "Visual Studio installation: $vs"
+          Write-Host "MSVC toolset directories: $($toolsets.Name -join ', ')"
+          Write-Host "Windows SDK versions: $($sdkVersions.Name -join ', ')"
+          $msbuild = Get-ChildItem "$vs\MSBuild\Current\Bin\MSBuild.exe"
+          if (-not $msbuild) { throw "MSBuild was not found in the Visual Studio installation." }
+          Write-Host "MSBuild: $($msbuild.FullName)"
+          $vcvars = "$vs\VC\Auxiliary\Build\vcvars64.bat"
+          $smokeSource = Join-Path $env:TEMP 'suborno-msvc-smoke.cpp'
+          $smokeObject = Join-Path $env:TEMP 'suborno-msvc-smoke.obj'
+          Set-Content -Path $smokeSource -Value 'int main() { return 0; }' -NoNewline
+          cmd /c "`"$vcvars`" > nul && cl /nologo /EHsc /std:c++20 /c `"$smokeSource`" /Fo:`"$smokeObject`""
+          if ($LASTEXITCODE -ne 0) { throw "Unable to initialize or verify the MSVC x64 compiler." }
+
+      - name: Verify toolchain versions
+        shell: pwsh
+        run: |
+          & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | ForEach-Object {
+            $vs = $_
+            $toolsets = Get-ChildItem "$vs\VC\Tools\MSVC" -Directory | Where-Object { $_.Name -match '^14\.3\d+\.' } | Select-Object -First 1
+            if ($toolsets) {
+              Write-Host "Selected MSVC toolset: $($toolsets.Name)"
+            }
+          }
+          cl /? | Select-Object -First 1
+          cmake --version | Select-Object -First 1
+          ninja --version | Select-Object -First 1
+
+      - name: Install pinned vcpkg
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git clone --filter=blob:none --no-checkout https://github.com/microsoft/vcpkg.git "$env:VCPKG_ROOT"
+          if ($LASTEXITCODE -ne 0) { throw "Unable to clone vcpkg." }
+          git -C "$env:VCPKG_ROOT" fetch --depth 1 origin 0df93a05b9de080129e653ec4776d7e14a1b2e4f
+          if ($LASTEXITCODE -ne 0) { throw "Unable to fetch the pinned vcpkg baseline." }
+          git -C "$env:VCPKG_ROOT" checkout --detach 0df93a05b9de080129e653ec4776d7e14a1b2e4f
+          if ($LASTEXITCODE -ne 0) { throw "Unable to check out the pinned vcpkg baseline." }
+          & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
+          if ($LASTEXITCODE -ne 0) { throw "vcpkg bootstrap failed." }
+
+      - name: Configure MSVC v143 x64 (Release)
+        run: cmake --preset windows-msvc
+
+      - name: Build Release
+        shell: pwsh
+        run: |
+          cmake --build --preset windows-msvc-release --parallel 1 --verbose -- /verbosity:diagnostic 2>&1 |
+            Tee-Object -FilePath build/windows-msvc/build-release.log
+          if ($LASTEXITCODE -ne 0) { throw "Release build failed." }
+          if (-not (Select-String -Path build/windows-msvc/build-release.log -Pattern '/utf-8' -Quiet)) {
+            throw "MSVC compile commands did not contain the required /utf-8 option."
+          }
+
+      - name: Test Release
+        run: ctest --preset windows-msvc-release --output-junit build/windows-msvc/ctest-release.xml
+
+      - name: Build Debug
+        shell: pwsh
+        run: |
+          cmake --build --preset windows-msvc-debug --parallel 1 --verbose -- /verbosity:diagnostic 2>&1 |
+            Tee-Object -FilePath build/windows-msvc/build-debug.log
+          if ($LASTEXITCODE -ne 0) { throw "Debug build failed." }
+          if (-not (Select-String -Path build/windows-msvc/build-debug.log -Pattern '/utf-8' -Quiet)) {
+            throw "MSVC compile commands did not contain the required /utf-8 option."
+          }
+
+      - name: Test Debug
+        run: ctest --preset windows-msvc-debug --output-junit build/windows-msvc/ctest-debug.xml
+
+      - name: Upload Windows build artifacts
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: suborno-windows-msvc-v143-x64
+          path: |
+            build/windows-msvc/Release/*.dll
+            build/windows-msvc/Debug/*.dll
+            build/windows-msvc/Release/*.exe
+            build/windows-msvc/Debug/*.exe
+            build/windows-msvc/build-release.log
+            build/windows-msvc/build-debug.log
+            build/windows-msvc/ctest-release.xml
+            build/windows-msvc/ctest-debug.xml
+          if-no-files-found: error
+          retention-days: 14

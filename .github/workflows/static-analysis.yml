@@ -1,0 +1,132 @@
+name: Static Analysis
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: static-analysis-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  clang-tidy-linux:
+    name: clang-tidy / Ubuntu 26.04
+    runs-on: ubuntu-26.04
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}/.vcpkg
+      VCPKG_MAX_CONCURRENCY: 2
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Install build and analysis tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential git curl zip unzip tar zstd pkg-config python3
+          scripts/install-llvm-23-ubuntu.sh
+          scripts/install-linux-build-tools.sh
+
+      - name: Install pinned vcpkg
+        shell: bash
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/microsoft/vcpkg.git "$VCPKG_ROOT"
+          git -C "$VCPKG_ROOT" fetch --depth 1 origin 0df93a05b9de080129e653ec4776d7e14a1b2e4f
+          git -C "$VCPKG_ROOT" checkout --detach 0df93a05b9de080129e653ec4776d7e14a1b2e4f
+          "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+
+      - name: Configure for compile_commands.json
+        run: cmake --preset ubuntu-ci
+
+      - name: Run clang-tidy
+        run: scripts/check-tidy-ubuntu.sh build/ubuntu-ci
+
+      - name: Upload clang-tidy results
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: clang-tidy-results
+          path: build/ubuntu-ci/Testing/Temporary/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  cppcheck-linux:
+    name: cppcheck / Ubuntu 24.04
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Install cppcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cppcheck
+          cppcheck --version
+
+      - name: Run cppcheck
+        run: |
+          cppcheck --enable=all --suppress=missingIncludeSystem \
+            --std=c++20 --language=c++ \
+            -i build -i .vcpkg \
+            -I include \
+            src include tests benchmarks \
+            --error-exitcode=0 \
+            2>&1 | tee cppcheck-report.txt || true
+
+      - name: Upload cppcheck report
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: cppcheck-report
+          path: cppcheck-report.txt
+          if-no-files-found: ignore
+          retention-days: 7
+
+  msvc-analyze-windows:
+    name: MSVC /analyze / Windows 2022 / x64
+    runs-on: windows-2022
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}\.vcpkg
+      VCPKG_MAX_CONCURRENCY: 2
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Install pinned vcpkg
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git clone --filter=blob:none --no-checkout https://github.com/microsoft/vcpkg.git "$env:VCPKG_ROOT"
+          git -C "$env:VCPKG_ROOT" fetch --depth 1 origin 0df93a05b9de080129e653ec4776d7e14a1b2e4f
+          git -C "$env:VCPKG_ROOT" checkout --detach 0df93a05b9de080129e653ec4776d7e14a1b2e4f
+          & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
+          if ($LASTEXITCODE -ne 0) { throw "vcpkg bootstrap failed." }
+
+      - name: Configure with MSVC static analysis
+        run: |
+          cmake --preset windows-msvc -DSUBORNO_ENABLE_MSVC_ANALYSIS=ON
+
+      - name: Build with static analysis
+        shell: pwsh
+        run: |
+          cmake --build --preset windows-msvc-release --parallel 1 --verbose -- /verbosity:diagnostic 2>&1 |
+            Tee-Object -FilePath build/windows-msvc/build-analyze.log
+          if ($LASTEXITCODE -ne 0) { throw "MSVC static analysis build failed." }
+
+      - name: Upload MSVC analyze log
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: msvc-analyze-log
+          path: build/windows-msvc/build-analyze.log
+          if-no-files-found: ignore
+          retention-days: 7
